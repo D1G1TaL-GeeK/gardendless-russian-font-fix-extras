@@ -10,7 +10,7 @@ Version **1.0.1**. A GP-Next JavaScript mod for PvZ2 Gardendless that improves R
 
 Click a thumbnail, then use **Previous / Next** to browse all 20 screenshots.
 
-[All screenshots / Все скриншоты](SCREENSHOTS.md)
+[Open the interactive gallery →](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/) · [All screenshots / Все скриншоты](SCREENSHOTS.md)
 
 <table>
   <tr>

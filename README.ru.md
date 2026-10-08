@@ -10,7 +10,7 @@
 
 Нажмите миниатюру и листайте все 20 снимков кнопками **Назад / Далее**.
 
-[All screenshots / Все скриншоты](SCREENSHOTS.md)
+[Открыть галерею с перелистыванием →](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/) · [All screenshots / Все скриншоты](SCREENSHOTS.md)
 
 <table>
   <tr>
