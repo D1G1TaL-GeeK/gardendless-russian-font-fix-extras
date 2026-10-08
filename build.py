@@ -25,7 +25,7 @@ def bundle():
 
 def payload():
     manifest = json.loads((ROOT / "pack.json").read_text(encoding="utf-8"))
-    if manifest["version"] != "1.0" or manifest["js"]["entry"] != "scripts/main.mjs":
+    if manifest["version"] != "1.0.1" or manifest["js"]["entry"] != "scripts/main.mjs":
         raise ValueError("Unexpected version or entry point")
     result = {"pack.json": (ROOT / "pack.json").read_bytes(), "scripts/main.mjs": bundle()}
     for name in DOCS:
@@ -71,8 +71,8 @@ def main():
         for path in sorted((ROOT / folder).glob("*.mjs")):
             source_files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
     entries = (
-        ("Russian_Font_Display_Fix_Extras_1.0.zip", release_files),
-        ("Russian_Font_Display_Fix_Extras_1.0_Source.zip", source_files),
+        ("Russian_Font_Display_Fix_Extras_1.0.1.zip", release_files),
+        ("Russian_Font_Display_Fix_Extras_1.0.1_Source.zip", source_files),
     )
     lines = []
     for name, files in entries:

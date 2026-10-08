@@ -4,7 +4,7 @@ import {createPaidController,readPowerPreferences,DEFAULT_PRICES} from "./paid-p
 import {createFontPreview} from "./font-preview.mjs";
 import {createUiController} from "./layout-ui.mjs";
 import {createPlanningController} from "./planning-boost.mjs";
-const VERSION = "1.0";
+const VERSION = "1.0.1";
 const RUSSIAN = /[\u0401\u0410-\u044f\u0451]/;
 const CLASSIC_FAMILY = { bold: "GardendlessRussianBalsamiqBold", regular: "GardendlessRussianBalsamiqRegular" };
 export const FONT_OPTIONS = [
@@ -663,7 +663,7 @@ export function createController(cc, resources, log = {}) {
       const row=node.parent,layout=component(row,cc,'Layout'),icons=(row.children??[]).filter(n=>n!==node&&n.active!==false);
       const reserved=icons.reduce((sum,n)=>sum+number(transform(n,cc)?.width)*positive(n.scale.x),0)+icons.length*number(layout?.spacingX);
       const width=Math.max(200,number(ui?.width,1200)-number(layout?.paddingLeft)-number(layout?.paddingRight)-reserved-24);
-      return fitBlock(label,state,{width,height:400,base:tuned(52),style:'regular',role,maxLines:8,forceWrap:true,grow:true});
+      return fitBlock(label,state,{width,height:400,base:tuned(44),style:'regular',role,maxLines:8,forceWrap:true,grow:true});
     }
     if(role === "window-title") {
       const width=Math.min(1800,Math.max(state.own.width,number(ui?.width,1200)*.72));
