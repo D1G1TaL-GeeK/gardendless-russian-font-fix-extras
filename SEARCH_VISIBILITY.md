@@ -11,6 +11,7 @@ The public GitHub repository and its GitHub Pages website serve different purpos
 - Open Graph and Twitter metadata using the existing preview of the actual recommended fonts. Structured data describes the free mod and its current version; no ratings or reviews are invented.
 - A UTF-8 XML sitemap containing the four canonical pages and the preview/gallery images. Each HTML footer links to it.
 - Accessible image descriptions, declared dimensions, deferred gallery scripting and lazy loading for the existing large screenshots.
+- Content-specific script/style filenames prevent an older cached gallery script from running against newly published HTML.
 - Mutual links between the repository, website, documentation and release downloads. The existing repository URL and release links remain stable.
 
 ## Checks and hosting limits

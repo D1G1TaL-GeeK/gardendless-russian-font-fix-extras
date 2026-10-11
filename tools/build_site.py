@@ -2,6 +2,7 @@
 from pathlib import Path
 from html import escape
 import json
+import hashlib
 import re
 import shutil
 import struct
@@ -19,6 +20,13 @@ UPDATED = "2026-10-11"
 SCREENSHOTS = json.loads(re.search(r"const screenshots = (\[[\s\S]*?\n\]);", (DOCS / "gallery.js").read_text(encoding="utf-8")).group(1))
 PREVIEW = "assets/recommended-font-preview.png"
 PREVIEW_SIZE = struct.unpack(">II", (ROOT / "examples/native-font-slots.png").read_bytes()[16:24])
+# New content gets a new URL so an old cached script cannot process the new HTML.
+ASSETS = {}
+for source in ("gallery.css", "site.css", "gallery.js"):
+    data = (DOCS / source).read_text(encoding="utf-8").encode("utf-8")
+    digest = hashlib.sha256(data).hexdigest()[:12]
+    stem, suffix = source.rsplit(".", 1)
+    ASSETS[source] = (f"{stem}.{digest}.{suffix}", data)
 
 TEXT = {
     "en": {
@@ -130,8 +138,8 @@ def head(language, installation):
   <meta name="twitter:description" content="{escape(description, quote=True)}">
   <meta name="twitter:image" content="{BASE + PREVIEW}">
   <meta name="twitter:image:alt" content="{escape(t['preview_alt'], quote=True)}">
-  <link rel="stylesheet" href="{BASE}gallery.css">
-  <link rel="stylesheet" href="{BASE}site.css">
+  <link rel="stylesheet" href="{BASE + ASSETS['gallery.css'][0]}">
+  <link rel="stylesheet" href="{BASE + ASSETS['site.css'][0]}">
   <script type="application/ld+json">{schema_json}</script>
 </head>'''
 
@@ -270,12 +278,14 @@ def sitemap():
 def main():
     (DOCS / "assets").mkdir(exist_ok=True)
     shutil.copyfile(ROOT / "examples/native-font-slots.png", DOCS / PREVIEW)
+    for name, data in ASSETS.values():
+        (DOCS / name).write_bytes(data)
     for language in TEXT:
         for installation in (False, True):
             target = DOCS / route(language, installation) / "index.html"
             target.parent.mkdir(parents=True, exist_ok=True)
             body = installation_body(language) if installation else home_body(language)
-            script = f'<script src="{BASE}gallery.js" defer></script>' if not installation else ""
+            script = f'<script src="{BASE + ASSETS["gallery.js"][0]}" defer></script>' if not installation else ""
             target.write_text("\n".join((head(language, installation), header(language, installation), body, footer(language), script + "</body></html>\n")), encoding="utf-8", newline="\n")
     sitemap()
     print("Built four static EN/RU pages, the existing gallery, recommended font preview and sitemap.xml")
