@@ -8,7 +8,7 @@ import {createTipPartyController} from "./tip-party.mjs";
 import {createAutoCollectController} from "./auto-collect.mjs";
 import {FONT_SLOTS,readFontSlots,setFontSlot,resetFontSlots,fontSlotChoice,fontSlotFamily,originalFontSlot,fontOpticalFactor} from "./font-slots.mjs";
 import {authoredLines,balancedLines} from "./text-fit.mjs";
-const VERSION = "1.0.2";
+const VERSION = "1.0.3";
 const RUSSIAN = /[\u0401\u0410-\u044f\u0451]/;
 const CLASSIC_FAMILY = { bold: "GardendlessRussianBalsamiqBold", regular: "GardendlessRussianBalsamiqRegular" };
 export const FONT_OPTIONS = [
@@ -1078,13 +1078,24 @@ async function loadFonts(ctx, resources) {
 
 
 
-async function panelLanguageModule() {
+export async function panelLanguageModule() {
   const entries = globalThis.performance?.getEntriesByType?.("resource") ?? [];
-  const url = entries.map(e => e.name).find(n => /\/assets\/i18n-DdDmRoF-\.js(?:[?#]|$)/.test(n));
-  if (!url && globalThis.window?.gpNext?.version !== "1.5.4") return null;
-  const resolved = url ?? new URL("/assets/i18n-DdDmRoF-.js", globalThis.location.href).href;
-  const module = await import(resolved);
-  return typeof module.i === "function" && typeof module.t === "function" && typeof module.r === "function" ? module : null;
+  const origin = globalThis.location?.origin;
+  const url = entries.map(e => e.name).find(name => {
+    try { const parsed = new URL(name); return parsed.origin === origin && /\/assets\/i18n-[\w-]+\.js$/.test(parsed.pathname); }
+    catch (_) { return false; }
+  });
+  if (!url) {
+    if (globalThis.window?.gpNext) throw new Error("Языковой модуль GP-Next не найден среди загруженных ресурсов.");
+    return null;
+  }
+  const module = await import(url);
+  if (typeof module.i !== "function" || typeof module.t !== "function" || typeof module.r !== "function") {
+    throw new Error("Неподдерживаемый интерфейс языкового модуля GP-Next.");
+  }
+  // 1.5.4 exports syncFromGameLanguage; 1.5.5 exports setLocale in the same slot.
+  // Passing English works with both; the caller restores the game's language.
+  return { getLocale: module.t, subscribe: module.r, setEnglish: () => module.i("en") };
 }
 
 export function createLanguageController(cc, classes, log = {}) {
@@ -1093,19 +1104,30 @@ export function createLanguageController(cc, classes, log = {}) {
   let deadline = Infinity, warned = false;
   let startupLanguage = readStartupLanguage(), requestedLanguage = null;
   function englishPanel() {
-    if (disposed || !panel || !ML || applying || panel.t() === "en") return;
+    if (disposed || !panel || !ML || applying || panel.getLocale() === "en") return;
     const language = ML.currentLanguage;
     applying = true;
     try {
 
 
       ML.currentLanguage = Number(languages?.EN ?? 0);
-      panel.i();
+      panel.setEnglish();
+      if (panel.getLocale() !== "en") throw new Error("Не удалось включить English в панели GP-Next.");
     } finally { ML.currentLanguage = language; applying = false; }
   }
   function russianIndex() {
     const index = Number(languages?.RU);
     return Number.isInteger(index) && index >= 2 && index < Number(languages?.amount) ? index : null;
+  }
+  function saveGameLanguage(index) {
+    try {
+      const storage = cc.sys?.localStorage;
+      const source = storage?.getItem("PvZ2_Settings");
+      const settings = source ? JSON.parse(source) : Setting?.getSettings?.();
+      if (settings && typeof settings === "object" && !Array.isArray(settings) && settings.Language !== index) {
+        storage?.setItem("PvZ2_Settings", JSON.stringify({ ...settings, Language: index }));
+      }
+    } catch (error) { log.warn?.(`Язык применён на этот запуск; настройка языка не сохранена: ${String(error?.message ?? error)}`); }
   }
   function applyStartupLanguage() {
     if (disposed || applied || !started || !ML) return;
@@ -1113,7 +1135,7 @@ export function createLanguageController(cc, classes, log = {}) {
     const index = requestedLanguage === "ru" ? russianIndex()
       : Number.isInteger(english) && english >= 0 && (!(amount > 0) || english < amount) ? english : null;
     if (index === null) {
-      if (Date.now() > deadline) { applied = true; log.warn?.("Выбранный язык запуска недоступен; текущий язык игры сохранён."); }
+      if (Date.now() > deadline) { applied = true; log.warn?.("Русский язык недоступен; загрузка продолжена на английском. Включите русификатор и перезапустите игру."); }
       return;
     }
     applied = true;
@@ -1121,14 +1143,7 @@ export function createLanguageController(cc, classes, log = {}) {
     ML.currentLanguage = index;
 
 
-    try {
-      const storage = cc.sys?.localStorage;
-      const source = storage?.getItem("PvZ2_Settings");
-      const settings = source ? JSON.parse(source) : Setting?.getSettings?.();
-      if (settings && typeof settings === "object" && !Array.isArray(settings)) {
-        if (settings.Language !== index) storage?.setItem("PvZ2_Settings", JSON.stringify({ ...settings, Language: index }));
-      }
-    } catch (error) { log.warn?.(`Язык применён на этот запуск; настройка языка не сохранена: ${String(error?.message ?? error)}`); }
+    saveGameLanguage(index);
     englishPanel();
 
 
@@ -1145,7 +1160,7 @@ export function createLanguageController(cc, classes, log = {}) {
       try { panel = await panelLanguageModule(); }
       catch (error) { if (!warned) { warned = true; log.warn?.(`Язык F9: ${String(error?.message ?? error)}`); } }
     },
-    publish() { if (disposed) return; if (panel) { unsubscribe = panel.r(englishPanel); englishPanel(); } },
+    publish() { if (disposed) return; if (panel) { unsubscribe = panel.subscribe(englishPanel); englishPanel(); } },
     get startupLanguage() { return startupLanguage; },
     setStartupLanguage(value) {
       if (disposed || (value !== "ru" && value !== "en")) return false;
@@ -1154,7 +1169,23 @@ export function createLanguageController(cc, classes, log = {}) {
       catch (error) { log.warn?.(`Язык следующего запуска не сохранён: ${String(error?.message ?? error)}`); }
       return true;
     },
-    start() { if (started || disposed) return; started = true; requestedLanguage = startupLanguage; deadline = Date.now() + 10000; applyStartupLanguage(); },
+    start(loading = false) {
+      if (disposed) return;
+      if (started) {
+        if (!loading && deadline === Infinity) deadline = Date.now() + 10000;
+        applyStartupLanguage();
+        return;
+      }
+      started = true; requestedLanguage = startupLanguage; deadline = loading ? Infinity : Date.now() + 10000;
+      if (ML && requestedLanguage === "ru" && russianIndex() === null) {
+        // The translation is registered after the loading scene starts. Never
+        // interpret yesterday's numeric language index as today's Spanish index.
+        const english = Number(languages?.EN ?? 0);
+        ML.currentLanguage = english;
+        saveGameLanguage(english);
+      }
+      applyStartupLanguage();
+    },
     scan() { englishPanel(); applyStartupLanguage(); },
     dispose() { disposed = true; unsubscribe?.(); unsubscribe = null; }
   };
@@ -1220,6 +1251,7 @@ export default {
         if (disposed) return;
         nativeEngine = null;
         language.publish();
+        language.start(true);
         controller = createController(cc, resources, ctx.log);
         const reported = new Set();
         listener = () => {
@@ -1252,7 +1284,7 @@ export default {
       }
 
     };
-    let pricesExpanded=false,autoExpanded=false;
+    let pricesExpanded=false;
     ctx.controls?.definePanel?.(current.settingsView.wrapPanel({
       title: "Русский шрифт и размеры",
       description: "Автоматическая подгонка работает при любом выбранном размере. Настройка сохраняется отдельно от прогресса игры.",
@@ -1275,10 +1307,10 @@ export default {
         {type:"toggle",key:"show-prices",label:"Настроить стоимость усилений",visible:()=>current.paid.preferences.mode==="coins",getValue:()=>pricesExpanded,setValue:v=>{pricesExpanded=!!v;}},
         ...Object.entries({snow:"Снежки",toss:"Отбрасывание",zap:"Молния",flame:"Огонь",cherry:"Вишенка",food:"Одна подкормка"}).map(([key,label])=>({type:"number",key:"price-"+key,label:label+" — монеты",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,min:1,max:2147483647,step:1,getValue:()=>current.paid.preferences.prices[key],setValue:v=>current.paid.setPrice(key,v)})),
         {type:"action",key:"reset-prices",label:"Вернуть цены по умолчанию",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,onClick:()=>current.paid.resetPrices()},
-        {type:"toggle",key:"show-auto-collect",label:"Настроить автоподбор предметов",description:"Открывает выбор предметов. Скрытие настроек сохраняет выбранные галочки и не отключает автоподбор.",getValue:()=>autoExpanded,setValue:v=>{autoExpanded=!!v;}},
-        {type:"toggle",key:"auto-collect-other",label:"Автоподбор прочего дропа",visible:()=>autoExpanded,description:"Монеты, алмазы, ростки и билеты. Солнце и листики подкормки включаются отдельно. Работает также для монет и алмазов в саду.",getValue:()=>current.autoCollect.preferences.other,setValue:v=>current.autoCollect.setEnabled("other",v)},
-        {type:"toggle",key:"auto-collect-sun",label:"Автоподбор солнца",visible:()=>autoExpanded,description:"Собирает обычное солнце штатным способом. Опасные солнечные бомбы не активирует.",getValue:()=>current.autoCollect.preferences.sun,setValue:v=>current.autoCollect.setEnabled("sun",v)},
-        {type:"toggle",key:"auto-collect-plantfood",label:"Автоподбор листиков подкормки",visible:()=>autoExpanded,description:"Собирает листики, когда в банке есть место. Подкормку на растения не расходует.",getValue:()=>current.autoCollect.preferences.plantfood,setValue:v=>current.autoCollect.setEnabled("plantfood",v)}
+        {type:"toggle",key:"show-auto-collect",label:"Настроить автоподбор предметов",description:"Открывает выбор предметов. При выключении все вложенные галочки снимаются и автоподбор прекращается сразу.",getValue:()=>current.autoCollect.enabled,setValue:v=>current.autoCollect.setActive(v)},
+        {type:"toggle",key:"auto-collect-other",label:"Автоподбор прочего дропа",visible:()=>current.autoCollect.enabled,description:"Монеты, алмазы, ростки и билеты. Солнце и листики подкормки включаются отдельно. Работает также для монет и алмазов в саду.",getValue:()=>current.autoCollect.preferences.other,setValue:v=>current.autoCollect.setEnabled("other",v)},
+        {type:"toggle",key:"auto-collect-sun",label:"Автоподбор солнца",visible:()=>current.autoCollect.enabled,description:"Собирает обычное солнце штатным способом. Опасные солнечные бомбы не активирует.",getValue:()=>current.autoCollect.preferences.sun,setValue:v=>current.autoCollect.setEnabled("sun",v)},
+        {type:"toggle",key:"auto-collect-plantfood",label:"Автоподбор листиков подкормки",visible:()=>current.autoCollect.enabled,description:"Собирает листики, когда в банке есть место. Подкормку на растения не расходует.",getValue:()=>current.autoCollect.preferences.plantfood,setValue:v=>current.autoCollect.setEnabled("plantfood",v)}
       ]},{title:"Улучшения игры",items:[
         {type:"toggle",key:"planning-boost-fix",label:"Убирать копии от начального буста до старта раунда",description:"Во время подготовки буст из сада или за алмазы расходуется по игровой логике, но не создаёт копии. После запуска раунда копии и удобрение листиком действуют как обычно.",getValue:()=>current.planning.enabled,setValue:v=>current.planning.setEnabled(v)},
         {type:"toggle",key:"custom-game-speed",label:"Изменить стандартный множитель ускорения",description:"Заменяет ускорение штатной кнопки выбранным множителем. Пока ускорение выключено, скорость остаётся обычной.",getValue:()=>current.speed.enabled,setValue:v=>current.speed.setEnabled(v)},

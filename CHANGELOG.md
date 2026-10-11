@@ -1,6 +1,33 @@
 # Changelog / Изменения
 
-## 1.0.2 — 2026-10-11
+## 1.0.3 — 2026-10-11
+
+- GP-Next 1.5.4/1.5.5 stays in English independently of the chosen game language. The mod discovers the loaded language module instead of a fixed old filename.
+- Startup language is applied before the native loading scene reads settings. Loading uses English while Russian registers; a missing translation keeps English. Slow initial loading does not consume the registration timeout.
+- The saved master auto-collection switch clears all three item choices when disabled, stopping mod collection immediately in levels and gardens. Re-enabling opens an empty submenu. Legacy active collectors migrate to an enabled visible submenu.
+- Piñata Party also hides during LoaderFlower loading/menu-transition tips, including fade-out. Native card state, child positions and timer remain intact.
+- Regenerated the README font preview from the recommended five-font preset. Release notes contain no game screenshots.
+- **1.0.2 was withdrawn**, including its release and tag. Its previous tests covered settings and package format but missed the language regression.
+
+### Русский
+
+- Панель GP-Next 1.5.4/1.5.5 остаётся английской независимо от языка игры. Убрана привязка к старому имени языкового модуля.
+- Выбор языка применяется до чтения настроек загрузочным экраном. До регистрации русского перевода загрузка идёт на английском; без русификатора английский остаётся.
+- Отключение общего пункта автоподбора снимает все вложенные галочки, немедленно прекращает подбор модом и сохраняет сброс. Повторное включение открывает пустое подменю.
+- Piñata Party скрывается также во время подсказок загрузки и перехода между меню, включая затухание.
+- Предосмотр в README приведён к стандартным пяти шрифтам. Скриншоты игры в описание релиза не добавлены. Версия 1.0.2 снята с публикации.
+
+### Validation / Проверки
+
+- 50 controller/preference tests passed, including the master reset, legacy migration and cold language publication.
+- 204 assertions across 12 cases using the actual GP-Next 1.5.4/1.5.5 language modules: English/Chinese/Spanish initial panel locales, Russian/English game choices and native splash initialization.
+- 622 assertions against the GP-Next 1.5.5 settings renderer and game UI, including master reset, decimal input, retained scroll and live speed.
+- 288 assertions over 40 native LoaderFlower transitions, fade-out, global notifications, late card children and disposal.
+- 50 rendering assertions for the recommended font preview and targeted loading-tip clipping at two pixel densities.
+
+Checks are isolated and do not operate the player's running game. The AirPods audio-device-switch issue is unchanged.
+
+## 1.0.2 — 2026-10-11 (withdrawn / снят)
 
 ### Fonts and dialogue
 

@@ -1,15 +1,25 @@
 const AUTO_COLLECT_KEY = "local.gardendless.russian-font-fix.auto-collect.v1";
-export function readAutoCollectPreferences(storage) {
+function readAutoCollectState(storage) {
   try {
     const value = JSON.parse((storage ?? globalThis.localStorage)?.getItem(AUTO_COLLECT_KEY) ?? "null");
-    return { other: value?.other === true, sun: value?.sun === true, plantfood: value?.plantfood === true };
-  } catch (_) { return { other: false, sun: false, plantfood: false }; }
+    const preferences = { other: value?.other === true, sun: value?.sun === true, plantfood: value?.plantfood === true };
+    const enabled = value?.enabled === true || (value?.enabled !== false && Object.values(preferences).some(Boolean));
+    if (!enabled) for (const key of Object.keys(preferences)) preferences[key] = false;
+    return { enabled, preferences };
+  } catch (_) { return { enabled: false, preferences: { other: false, sun: false, plantfood: false } }; }
+}
+export function readAutoCollectPreferences(storage) {
+  return readAutoCollectState(storage).preferences;
 }
 export function createAutoCollectController(cc, native, log = {}, storage) {
-  const preferences = readAutoCollectPreferences(storage), bound = new WeakSet(), undo = [];
-  let disposed = false, warned = false;
+  const state = readAutoCollectState(storage), preferences = state.preferences, bound = new WeakSet(), undo = [];
+  let enabled = state.enabled, disposed = false, warned = false;
+  function save() {
+    try { (storage ?? globalThis.localStorage)?.setItem(AUTO_COLLECT_KEY, JSON.stringify({ enabled, ...preferences })); }
+    catch (_) { log.warn?.("Автоподбор изменён на текущий запуск; сохранить настройку не удалось."); }
+  }
   function collect(drop, dt, garden) {
-    if (disposed || !(dt > 0) || drop.collected || drop.disabled || drop.fadingAway || drop.node?.isValid === false ||
+    if (disposed || !enabled || !(dt > 0) || drop.collected || drop.disabled || drop.fadingAway || drop.node?.isValid === false ||
       drop.node?.activeInHierarchy === false || drop.enabled === false || drop.mouseListen === false) return;
     const level = native.LevelPlay?.component, ui = native.UIInGame?.component;
     if (!garden && (!level || level.gameOver || level.gameWon || level.gameLost || ui?.paused || ui?.exitNextTick || ui?.restartNextTick || ui?.sceneEnabled === false)) return;
@@ -43,12 +53,21 @@ export function createAutoCollectController(cc, native, log = {}, storage) {
   }
   return {
     scan,
+    get enabled() { return enabled; },
     get preferences() { return { ...preferences }; },
+    setActive(value) {
+      if (disposed || typeof value !== "boolean") return false;
+      enabled = value;
+      if (!enabled) for (const key of Object.keys(preferences)) preferences[key] = false;
+      save();
+      scan();
+      return true;
+    },
     setEnabled(key, value) {
       if (disposed || !Object.hasOwn(preferences, key) || typeof value !== "boolean") return false;
       preferences[key] = value;
-      try { (storage ?? globalThis.localStorage)?.setItem(AUTO_COLLECT_KEY, JSON.stringify(preferences)); }
-      catch (_) { log.warn?.("Автоподбор изменён на текущий запуск; сохранить настройку не удалось."); }
+      if (value) enabled = true;
+      save();
       scan();
       return true;
     },

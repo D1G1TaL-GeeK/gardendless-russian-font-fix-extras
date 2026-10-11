@@ -1,7 +1,7 @@
 {
   "uuid": "local.gardendless.russian-font-fix",
   "name": "Russian Font Display Fix & Extras",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "packFormatVersion": 1,
   "apiVersion": 2,
   "gpNextVersion": ">=1.5.4 <2.0.0",

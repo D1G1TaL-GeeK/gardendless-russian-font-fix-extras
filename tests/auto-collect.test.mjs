@@ -82,3 +82,38 @@ test("binding waits for loaded classes, ignores invalid settings and preserves a
   assert.equal(controller.setEnabled("unknown", true), false); assert.equal(controller.setEnabled("sun", "true"), false);
   const external = () => "external"; f.Drop.prototype.characterUpdate = external; controller.dispose(); assert.equal(f.Drop.prototype.characterUpdate, external); f.Drop.prototype.characterUpdate = f.original;
 });
+
+test("the master switch clears every collector immediately and persists the reset", () => {
+  const f = fixture();
+  for (const key of ["other", "sun", "plantfood"]) f.controller.setEnabled(key, true);
+  assert.equal(f.controller.enabled, true);
+  assert.equal(f.controller.setActive(false), true);
+  assert.equal(f.controller.enabled, false);
+  assert.deepEqual(f.controller.preferences, { other: false, sun: false, plantfood: false });
+  for (const type of ["coin", "gem", "sun", "plantfood"]) {
+    const drop = new f.Drop(type); drop.characterUpdate(.016); assert.equal(drop.calls, 0);
+  }
+  const garden = new f.ZenDrop(); garden.update(.016); assert.equal(garden.calls, 0);
+  assert.deepEqual(readAutoCollectPreferences(f.storage), f.controller.preferences);
+  f.controller.setActive(true);
+  assert.deepEqual(f.controller.preferences, { other: false, sun: false, plantfood: false });
+  const coin = new f.Drop(); coin.characterUpdate(.016); assert.equal(coin.calls, 0);
+  f.controller.dispose();
+  const next = createAutoCollectController({}, {}, {}, f.storage);
+  assert.equal(next.enabled, true, "an open empty submenu also survives a restart");
+  assert.deepEqual(next.preferences, { other: false, sun: false, plantfood: false });
+  next.dispose(); assert.equal(next.setActive(true), false);
+});
+
+test("legacy enabled collectors open their submenu; a saved master-off flag takes precedence", () => {
+  const storage = { getItem: () => '{"other":true,"sun":true,"plantfood":true}' };
+  const legacy = createAutoCollectController({}, {}, {}, storage);
+  assert.equal(legacy.enabled, true);
+  assert.deepEqual(legacy.preferences, { other: true, sun: true, plantfood: true });
+  legacy.dispose();
+  const off = createAutoCollectController({}, {}, {}, { getItem: () => '{"enabled":false,"other":true,"sun":true,"plantfood":true}' });
+  assert.equal(off.enabled, false);
+  assert.deepEqual(off.preferences, { other: false, sun: false, plantfood: false });
+  assert.equal(off.setActive("true"), false);
+  off.dispose();
+});

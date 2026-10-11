@@ -3,6 +3,7 @@ export function createTipPartyController(cc) {
   let disposed = false;
   const valid = node => !!node && node.isValid !== false;
   function visible(node) {
+    if (!valid(node)) return false;
     for (let current = node; current; current = current.parent) {
       if (current.active === false || current.activeInHierarchy === false) return false;
       const opacity = current.getComponent?.(cc.UIOpacity);
@@ -51,8 +52,8 @@ export function createTipPartyController(cc) {
       const walk = node => { if (!valid(node)) return; nodes.push(node); for (const child of node.children ?? []) walk(child); };
       walk(scene);
       const parties = new Set(nodes.filter(node => node.name === "LODEntrance"));
-      const showing = nodes.some(node => node.name === "GamingTips" && visible(node) &&
-        (node.children ?? []).some(child => !child.__rffOwnedFont && String(child.getComponent?.(cc.Label)?.string ?? "").trim()));
+      const showing = nodes.some(node => (node.name === "GamingTips" || node.name === "LoaderFlower") && visible(node) &&
+        (node.children ?? []).some(child => visible(child) && !child.__rffOwnedFont && String(child.getComponent?.(cc.Label)?.string ?? "").trim()));
       for (const [root, state] of hidden) if (!showing || !parties.has(root) || !valid(root)) restore(root, state);
       if (showing) for (const root of parties) if (visible(root)) hide(root);
     },

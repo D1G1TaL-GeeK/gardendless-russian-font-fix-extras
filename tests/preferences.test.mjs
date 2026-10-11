@@ -203,3 +203,27 @@ test("preference save failure leaves the current level untouched", () => {
     assert.equal(f.warnings.length, 1);
   } finally { f.close(); }
 });
+
+test("cold publication uses English before native loading can read an old Chinese or Spanish index", () => {
+  const f = fixture(), now = Date.now;
+  let time = 100;
+  Date.now = () => time;
+  try {
+    delete f.languages.RU;
+    f.languages.ES = 2; f.languages.amount = 3;
+    f.ML.currentLanguage = 1;
+    f.storage.setItem("PvZ2_Settings", JSON.stringify({ ...f.options, Language: 2 }));
+    const c = f.controller();
+    c.start(true);
+    assert.equal(f.ML.currentLanguage, 0);
+    assert.deepEqual(JSON.parse(f.storage.getItem("PvZ2_Settings")), { ...f.options, Language: 0 });
+    time += 120000;
+    c.scan();
+    assert.deepEqual(f.warnings, [], "slow initial loading does not time out language registration");
+    Object.assign(f.languages, { RU: 3, amount: 4 });
+    c.start();
+    assert.equal(f.ML.currentLanguage, 3);
+    assert.equal(JSON.parse(f.storage.getItem("PvZ2_Settings")).Language, 3);
+    assert.equal(f.reloads, 1);
+  } finally { Date.now = now; f.close(); }
+});

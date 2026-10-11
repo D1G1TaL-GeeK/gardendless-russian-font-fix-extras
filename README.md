@@ -1,55 +1,18 @@
 # Russian Font Display Fix & Extras
 
-Version **1.0.2**. A GP-Next JavaScript mod for PvZ2 Gardendless: readable Russian fonts, improved interface spacing, and optional gameplay extras.
+Version **1.0.3**. A GP-Next JavaScript mod for PvZ2 Gardendless: readable Russian fonts, improved interface spacing, and optional gameplay extras.
 
-This update adds five independent font slots with live previews, separate auto-collection options, a live 1–10× fast-forward control, and the accumulated dialogue, hint, Almanac, shop, and HUD fixes. Verified against the GP-Next **1.5.5** settings renderer and package snapshot format. [All changes](CHANGELOG.md).
+Version 1.0.3 replaces the withdrawn 1.0.2: English GP-Next panel, English loading before translation registration, a master auto-collection switch that clears its children, and Piñata Party hidden throughout menu-transition tips. All accumulated font, interface and optional gameplay changes remain. [All changes](CHANGELOG.md).
 
-[Download 1.0.2](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/releases/tag/v1.0.2) · [Русское описание](README.ru.md) · [License](LICENSE) · [Font licenses](THIRD_PARTY_NOTICES.md)
+[Download 1.0.3](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/releases/tag/v1.0.3) · [Русское описание](README.ru.md) · [License](LICENSE) · [Font licenses](THIRD_PARTY_NOTICES.md)
 
 ## Screenshots
 
 The gallery contains 20 real screenshots captured in earlier versions with user-selected settings; the new controls are described below.
 
-Click a thumbnail, then use **Previous / Next** to browse all 20 screenshots.
+Open the gallery below, then use **Previous / Next** to browse the earlier screenshots.
 
 [Open the interactive gallery →](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/) · [All screenshots / Все скриншоты](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/SCREENSHOTS.md)
-
-<table>
-  <tr>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/01-bonus-reward.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/01-bonus-reward.png" width="240" alt="Bonus reward"></a><br><sub>01. Bonus reward</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/02-world-map.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/02-world-map.png" width="240" alt="Ancient Egypt world map"></a><br><sub>02. Ancient Egypt world map</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/03-plant-shop.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/03-plant-shop.png" width="240" alt="Plant shop"></a><br><sub>03. Plant shop</sub></td>
-  </tr>
-  <tr>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/04-coin-shop.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/04-coin-shop.png" width="240" alt="Coin shop"></a><br><sub>04. Coin shop</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/05-standard-garden.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/05-standard-garden.png" width="240" alt="Standard Zen Garden"></a><br><sub>05. Standard Zen Garden</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/06-water-garden.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/06-water-garden.png" width="240" alt="Water Zen Garden"></a><br><sub>06. Water Zen Garden</sub></td>
-  </tr>
-  <tr>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/07-plant-decoding.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/07-plant-decoding.png" width="240" alt="Plant decoding minigame"></a><br><sub>07. Plant decoding minigame</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/08-game-settings.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/08-game-settings.png" width="240" alt="Game settings"></a><br><sub>08. Game settings</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/09-more-settings.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/09-more-settings.png" width="240" alt="Additional game settings"></a><br><sub>09. Additional game settings</sub></td>
-  </tr>
-  <tr>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/10-world-chooser.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/10-world-chooser.png" width="240" alt="World selection"></a><br><sub>10. World selection</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/11-mod-manager.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/11-mod-manager.png" width="240" alt="GP-Next mod manager"></a><br><sub>11. GP-Next mod manager</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/12-font-settings.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/12-font-settings.png" width="240" alt="Font settings"></a><br><sub>12. Font settings</sub></td>
-  </tr>
-  <tr>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/13-live-font-preview.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/13-live-font-preview.png" width="240" alt="Live font previews and optional fixes"></a><br><sub>13. Live font previews and optional fixes</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/14-game-hint.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/14-game-hint.png" width="240" alt="In-game hint"></a><br><sub>14. In-game hint</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/15-almanac.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/15-almanac.png" width="240" alt="Plant Almanac"></a><br><sub>15. Plant Almanac</sub></td>
-  </tr>
-  <tr>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/16-upgrade-controls.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/16-upgrade-controls.png" width="240" alt="Upgrade controls"></a><br><sub>16. Upgrade controls</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/17-plant-medals.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/17-plant-medals.png" width="240" alt="Plant medals and families"></a><br><sub>17. Plant medals and families</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/18-world-information.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/18-world-information.png" width="240" alt="World information"></a><br><sub>18. World information</sub></td>
-  </tr>
-  <tr>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/19-battle-hud.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/19-battle-hud.png" width="240" alt="Battle interface"></a><br><sub>19. Battle interface</sub></td>
-    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/20-dialogue.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/20-dialogue.png" width="240" alt="Dialogue"></a><br><sub>20. Dialogue</sub></td>
-  </tr>
-</table>
 
 ## AI provenance and support
 
@@ -63,7 +26,7 @@ Targets **Gardendless 0.15.0 / Cocos 3.8.4**. Isolated checks cover **GP-Next 1.
 
 A separate enabled **Russian translation pack** is required for Russian game text. This mod fixes fonts/layout and does not provide a complete translation. It has no mandatory dependency on one particular translation-pack ID.
 
-1. Download **[Russian_Font_Display_Fix_Extras_1.0.2.zip](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/releases/download/v1.0.2/Russian_Font_Display_Fix_Extras_1.0.2.zip)** from the release assets.
+1. Download **[Russian_Font_Display_Fix_Extras_1.0.3.zip](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/releases/download/v1.0.3/Russian_Font_Display_Fix_Extras_1.0.3.zip)** from the release assets.
 2. Return to the main menu. Open **F9 → Experimental → JS Modding**, enable it, and review/confirm GP-Next's script notice.
 3. Open **Mods → Import ZIP**, select the archive directly, and check the displayed name/version. Install and enable your Russian translation pack separately.
 4. Enable **Russian Font Display Fix & Extras**. Review the package and confirm its script-trust prompt, including renewed trust if GP-Next asks after an update.
@@ -113,7 +76,9 @@ These font choices also apply to the recommended-style reset. Manually saved cho
 - Restore recommended fonts and the standard text size with separate reset buttons. The buttons have spacing above them.
 - Fonts load before rendering. If font loading fails or times out, the mod falls back to Arial and reports the failure in the log.
 
-![Five original-font slots and live samples](examples/native-font-slots.png)
+![Recommended five-slot font preview](examples/native-font-slots.png)
+
+Recommended font preset: Shantell Sans Bold / Comfortaa Bold / Caveat Bold / Comfortaa Bold / Ruslan Display.
 
 ### Interface and hints
 
@@ -134,7 +99,7 @@ These font choices also apply to the recommended-style reset. Manually saved cho
 - Enlarges the Arcade daily-earnings caption using up to two lines beside the native gem amount and icon. The caption follows the text-size setting and retains room for the animated reward and launch button.
 - Keeps native numeric currency fonts and normal gameplay camera/input behaviour. Text baked into images cannot be changed by font settings.
 
-The Piñata Party card and its buttons are temporarily hidden while a global notification is visible. The event timer continues to update, and the current native card state returns when the message ends.
+The Piñata Party card and its buttons are temporarily hidden while a global notification or a loading/menu-transition tip is visible, including its fade-out. The event timer continues to update, and the current native card state returns when the message ends.
 
 ### Zen Garden
 
@@ -148,7 +113,7 @@ The Piñata Party card and its buttons are temporarily hidden while a global not
 
 Under **Оформление → Язык запуска по умолчанию**, choose **Русский** or **English**. The selection is saved separately and applies on the **next full game launch**. Changing it does not restart the current level.
 
-Russian selection waits briefly for a translation pack to register. If Russian is unavailable, the current language is retained and a warning is logged. English selection uses the native English language. Only the language field is updated in the game's settings; unrelated options are preserved. The initial menu can be refreshed once to apply the selected language; active levels are never restarted by this feature.
+The loading scene starts in English while the Russian translation pack registers. Russian selection then uses the registered Russian language index; if Russian is unavailable, English remains active and a warning is logged. GP-Next’s panel is kept in English independently of the selected game language, on both 1.5.4 and 1.5.5. English selection uses the native English language. Only the language field is updated in the game's settings; unrelated options are preserved. The initial menu can be refreshed once to apply the selected language; active levels are never restarted by this feature.
 
 ### Cheats and coin-priced power-ups
 
@@ -181,7 +146,7 @@ Prices must be whole numbers from **1 to 2147483647**. Invalid input preserves t
 
 ### Auto-collection
 
-Under **Читы и усиления**, enable **Настроить автоподбор предметов** to reveal three independent, saved checkboxes, all **off by default**. Collapsing this group preserves its choices and does not disable active collection:
+Under **Читы и усиления**, enable **Настроить автоподбор предметов** to reveal three independent, saved checkboxes, all **off by default**. Turning this main checkbox off immediately clears all three choices and stops mod auto-collection. Re-enabling opens an empty submenu; choose the desired items again. The main checkbox and item choices are saved together:
 
 - **Автоподбор прочего дропа**: coins, gems, sprouts, and tickets, including garden coins and gems. Sun and plant food are excluded.
 - **Автоподбор солнца**: ordinary sun only. Dangerous sun bombs are not activated.

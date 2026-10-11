@@ -961,6 +961,7 @@ export function createTipPartyController(cc) {
   let disposed = false;
   const valid = node => !!node && node.isValid !== false;
   function visible(node) {
+    if (!valid(node)) return false;
     for (let current = node; current; current = current.parent) {
       if (current.active === false || current.activeInHierarchy === false) return false;
       const opacity = current.getComponent?.(cc.UIOpacity);
@@ -1009,8 +1010,8 @@ export function createTipPartyController(cc) {
       const walk = node => { if (!valid(node)) return; nodes.push(node); for (const child of node.children ?? []) walk(child); };
       walk(scene);
       const parties = new Set(nodes.filter(node => node.name === "LODEntrance"));
-      const showing = nodes.some(node => node.name === "GamingTips" && visible(node) &&
-        (node.children ?? []).some(child => !child.__rffOwnedFont && String(child.getComponent?.(cc.Label)?.string ?? "").trim()));
+      const showing = nodes.some(node => (node.name === "GamingTips" || node.name === "LoaderFlower") && visible(node) &&
+        (node.children ?? []).some(child => visible(child) && !child.__rffOwnedFont && String(child.getComponent?.(cc.Label)?.string ?? "").trim()));
       for (const [root, state] of hidden) if (!showing || !parties.has(root) || !valid(root)) restore(root, state);
       if (showing) for (const root of parties) if (visible(root)) hide(root);
     },
@@ -1023,17 +1024,27 @@ export function createTipPartyController(cc) {
 }
 
 const AUTO_COLLECT_KEY = "local.gardendless.russian-font-fix.auto-collect.v1";
-export function readAutoCollectPreferences(storage) {
+function readAutoCollectState(storage) {
   try {
     const value = JSON.parse((storage ?? globalThis.localStorage)?.getItem(AUTO_COLLECT_KEY) ?? "null");
-    return { other: value?.other === true, sun: value?.sun === true, plantfood: value?.plantfood === true };
-  } catch (_) { return { other: false, sun: false, plantfood: false }; }
+    const preferences = { other: value?.other === true, sun: value?.sun === true, plantfood: value?.plantfood === true };
+    const enabled = value?.enabled === true || (value?.enabled !== false && Object.values(preferences).some(Boolean));
+    if (!enabled) for (const key of Object.keys(preferences)) preferences[key] = false;
+    return { enabled, preferences };
+  } catch (_) { return { enabled: false, preferences: { other: false, sun: false, plantfood: false } }; }
+}
+export function readAutoCollectPreferences(storage) {
+  return readAutoCollectState(storage).preferences;
 }
 export function createAutoCollectController(cc, native, log = {}, storage) {
-  const preferences = readAutoCollectPreferences(storage), bound = new WeakSet(), undo = [];
-  let disposed = false, warned = false;
+  const state = readAutoCollectState(storage), preferences = state.preferences, bound = new WeakSet(), undo = [];
+  let enabled = state.enabled, disposed = false, warned = false;
+  function save() {
+    try { (storage ?? globalThis.localStorage)?.setItem(AUTO_COLLECT_KEY, JSON.stringify({ enabled, ...preferences })); }
+    catch (_) { log.warn?.("Автоподбор изменён на текущий запуск; сохранить настройку не удалось."); }
+  }
   function collect(drop, dt, garden) {
-    if (disposed || !(dt > 0) || drop.collected || drop.disabled || drop.fadingAway || drop.node?.isValid === false ||
+    if (disposed || !enabled || !(dt > 0) || drop.collected || drop.disabled || drop.fadingAway || drop.node?.isValid === false ||
       drop.node?.activeInHierarchy === false || drop.enabled === false || drop.mouseListen === false) return;
     const level = native.LevelPlay?.component, ui = native.UIInGame?.component;
     if (!garden && (!level || level.gameOver || level.gameWon || level.gameLost || ui?.paused || ui?.exitNextTick || ui?.restartNextTick || ui?.sceneEnabled === false)) return;
@@ -1067,12 +1078,21 @@ export function createAutoCollectController(cc, native, log = {}, storage) {
   }
   return {
     scan,
+    get enabled() { return enabled; },
     get preferences() { return { ...preferences }; },
+    setActive(value) {
+      if (disposed || typeof value !== "boolean") return false;
+      enabled = value;
+      if (!enabled) for (const key of Object.keys(preferences)) preferences[key] = false;
+      save();
+      scan();
+      return true;
+    },
     setEnabled(key, value) {
       if (disposed || !Object.hasOwn(preferences, key) || typeof value !== "boolean") return false;
       preferences[key] = value;
-      try { (storage ?? globalThis.localStorage)?.setItem(AUTO_COLLECT_KEY, JSON.stringify(preferences)); }
-      catch (_) { log.warn?.("Автоподбор изменён на текущий запуск; сохранить настройку не удалось."); }
+      if (value) enabled = true;
+      save();
       scan();
       return true;
     },
@@ -1110,7 +1130,7 @@ export function balancedLines(text,width,size,measure,style) {
   return result;
 }
 
-const VERSION = "1.0.2";
+const VERSION = "1.0.3";
 const RUSSIAN = /[\u0401\u0410-\u044f\u0451]/;
 const CLASSIC_FAMILY = { bold: "GardendlessRussianBalsamiqBold", regular: "GardendlessRussianBalsamiqRegular" };
 export const FONT_OPTIONS = [
@@ -2180,13 +2200,24 @@ async function loadFonts(ctx, resources) {
 
 
 
-async function panelLanguageModule() {
+export async function panelLanguageModule() {
   const entries = globalThis.performance?.getEntriesByType?.("resource") ?? [];
-  const url = entries.map(e => e.name).find(n => /\/assets\/i18n-DdDmRoF-\.js(?:[?#]|$)/.test(n));
-  if (!url && globalThis.window?.gpNext?.version !== "1.5.4") return null;
-  const resolved = url ?? new URL("/assets/i18n-DdDmRoF-.js", globalThis.location.href).href;
-  const module = await import(resolved);
-  return typeof module.i === "function" && typeof module.t === "function" && typeof module.r === "function" ? module : null;
+  const origin = globalThis.location?.origin;
+  const url = entries.map(e => e.name).find(name => {
+    try { const parsed = new URL(name); return parsed.origin === origin && /\/assets\/i18n-[\w-]+\.js$/.test(parsed.pathname); }
+    catch (_) { return false; }
+  });
+  if (!url) {
+    if (globalThis.window?.gpNext) throw new Error("Языковой модуль GP-Next не найден среди загруженных ресурсов.");
+    return null;
+  }
+  const module = await import(url);
+  if (typeof module.i !== "function" || typeof module.t !== "function" || typeof module.r !== "function") {
+    throw new Error("Неподдерживаемый интерфейс языкового модуля GP-Next.");
+  }
+  // 1.5.4 exports syncFromGameLanguage; 1.5.5 exports setLocale in the same slot.
+  // Passing English works with both; the caller restores the game's language.
+  return { getLocale: module.t, subscribe: module.r, setEnglish: () => module.i("en") };
 }
 
 export function createLanguageController(cc, classes, log = {}) {
@@ -2195,19 +2226,30 @@ export function createLanguageController(cc, classes, log = {}) {
   let deadline = Infinity, warned = false;
   let startupLanguage = readStartupLanguage(), requestedLanguage = null;
   function englishPanel() {
-    if (disposed || !panel || !ML || applying || panel.t() === "en") return;
+    if (disposed || !panel || !ML || applying || panel.getLocale() === "en") return;
     const language = ML.currentLanguage;
     applying = true;
     try {
 
 
       ML.currentLanguage = Number(languages?.EN ?? 0);
-      panel.i();
+      panel.setEnglish();
+      if (panel.getLocale() !== "en") throw new Error("Не удалось включить English в панели GP-Next.");
     } finally { ML.currentLanguage = language; applying = false; }
   }
   function russianIndex() {
     const index = Number(languages?.RU);
     return Number.isInteger(index) && index >= 2 && index < Number(languages?.amount) ? index : null;
+  }
+  function saveGameLanguage(index) {
+    try {
+      const storage = cc.sys?.localStorage;
+      const source = storage?.getItem("PvZ2_Settings");
+      const settings = source ? JSON.parse(source) : Setting?.getSettings?.();
+      if (settings && typeof settings === "object" && !Array.isArray(settings) && settings.Language !== index) {
+        storage?.setItem("PvZ2_Settings", JSON.stringify({ ...settings, Language: index }));
+      }
+    } catch (error) { log.warn?.(`Язык применён на этот запуск; настройка языка не сохранена: ${String(error?.message ?? error)}`); }
   }
   function applyStartupLanguage() {
     if (disposed || applied || !started || !ML) return;
@@ -2215,7 +2257,7 @@ export function createLanguageController(cc, classes, log = {}) {
     const index = requestedLanguage === "ru" ? russianIndex()
       : Number.isInteger(english) && english >= 0 && (!(amount > 0) || english < amount) ? english : null;
     if (index === null) {
-      if (Date.now() > deadline) { applied = true; log.warn?.("Выбранный язык запуска недоступен; текущий язык игры сохранён."); }
+      if (Date.now() > deadline) { applied = true; log.warn?.("Русский язык недоступен; загрузка продолжена на английском. Включите русификатор и перезапустите игру."); }
       return;
     }
     applied = true;
@@ -2223,14 +2265,7 @@ export function createLanguageController(cc, classes, log = {}) {
     ML.currentLanguage = index;
 
 
-    try {
-      const storage = cc.sys?.localStorage;
-      const source = storage?.getItem("PvZ2_Settings");
-      const settings = source ? JSON.parse(source) : Setting?.getSettings?.();
-      if (settings && typeof settings === "object" && !Array.isArray(settings)) {
-        if (settings.Language !== index) storage?.setItem("PvZ2_Settings", JSON.stringify({ ...settings, Language: index }));
-      }
-    } catch (error) { log.warn?.(`Язык применён на этот запуск; настройка языка не сохранена: ${String(error?.message ?? error)}`); }
+    saveGameLanguage(index);
     englishPanel();
 
 
@@ -2247,7 +2282,7 @@ export function createLanguageController(cc, classes, log = {}) {
       try { panel = await panelLanguageModule(); }
       catch (error) { if (!warned) { warned = true; log.warn?.(`Язык F9: ${String(error?.message ?? error)}`); } }
     },
-    publish() { if (disposed) return; if (panel) { unsubscribe = panel.r(englishPanel); englishPanel(); } },
+    publish() { if (disposed) return; if (panel) { unsubscribe = panel.subscribe(englishPanel); englishPanel(); } },
     get startupLanguage() { return startupLanguage; },
     setStartupLanguage(value) {
       if (disposed || (value !== "ru" && value !== "en")) return false;
@@ -2256,7 +2291,23 @@ export function createLanguageController(cc, classes, log = {}) {
       catch (error) { log.warn?.(`Язык следующего запуска не сохранён: ${String(error?.message ?? error)}`); }
       return true;
     },
-    start() { if (started || disposed) return; started = true; requestedLanguage = startupLanguage; deadline = Date.now() + 10000; applyStartupLanguage(); },
+    start(loading = false) {
+      if (disposed) return;
+      if (started) {
+        if (!loading && deadline === Infinity) deadline = Date.now() + 10000;
+        applyStartupLanguage();
+        return;
+      }
+      started = true; requestedLanguage = startupLanguage; deadline = loading ? Infinity : Date.now() + 10000;
+      if (ML && requestedLanguage === "ru" && russianIndex() === null) {
+        // The translation is registered after the loading scene starts. Never
+        // interpret yesterday's numeric language index as today's Spanish index.
+        const english = Number(languages?.EN ?? 0);
+        ML.currentLanguage = english;
+        saveGameLanguage(english);
+      }
+      applyStartupLanguage();
+    },
     scan() { englishPanel(); applyStartupLanguage(); },
     dispose() { disposed = true; unsubscribe?.(); unsubscribe = null; }
   };
@@ -2322,6 +2373,7 @@ export default {
         if (disposed) return;
         nativeEngine = null;
         language.publish();
+        language.start(true);
         controller = createController(cc, resources, ctx.log);
         const reported = new Set();
         listener = () => {
@@ -2354,7 +2406,7 @@ export default {
       }
 
     };
-    let pricesExpanded=false,autoExpanded=false;
+    let pricesExpanded=false;
     ctx.controls?.definePanel?.(current.settingsView.wrapPanel({
       title: "Русский шрифт и размеры",
       description: "Автоматическая подгонка работает при любом выбранном размере. Настройка сохраняется отдельно от прогресса игры.",
@@ -2377,10 +2429,10 @@ export default {
         {type:"toggle",key:"show-prices",label:"Настроить стоимость усилений",visible:()=>current.paid.preferences.mode==="coins",getValue:()=>pricesExpanded,setValue:v=>{pricesExpanded=!!v;}},
         ...Object.entries({snow:"Снежки",toss:"Отбрасывание",zap:"Молния",flame:"Огонь",cherry:"Вишенка",food:"Одна подкормка"}).map(([key,label])=>({type:"number",key:"price-"+key,label:label+" — монеты",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,min:1,max:2147483647,step:1,getValue:()=>current.paid.preferences.prices[key],setValue:v=>current.paid.setPrice(key,v)})),
         {type:"action",key:"reset-prices",label:"Вернуть цены по умолчанию",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,onClick:()=>current.paid.resetPrices()},
-        {type:"toggle",key:"show-auto-collect",label:"Настроить автоподбор предметов",description:"Открывает выбор предметов. Скрытие настроек сохраняет выбранные галочки и не отключает автоподбор.",getValue:()=>autoExpanded,setValue:v=>{autoExpanded=!!v;}},
-        {type:"toggle",key:"auto-collect-other",label:"Автоподбор прочего дропа",visible:()=>autoExpanded,description:"Монеты, алмазы, ростки и билеты. Солнце и листики подкормки включаются отдельно. Работает также для монет и алмазов в саду.",getValue:()=>current.autoCollect.preferences.other,setValue:v=>current.autoCollect.setEnabled("other",v)},
-        {type:"toggle",key:"auto-collect-sun",label:"Автоподбор солнца",visible:()=>autoExpanded,description:"Собирает обычное солнце штатным способом. Опасные солнечные бомбы не активирует.",getValue:()=>current.autoCollect.preferences.sun,setValue:v=>current.autoCollect.setEnabled("sun",v)},
-        {type:"toggle",key:"auto-collect-plantfood",label:"Автоподбор листиков подкормки",visible:()=>autoExpanded,description:"Собирает листики, когда в банке есть место. Подкормку на растения не расходует.",getValue:()=>current.autoCollect.preferences.plantfood,setValue:v=>current.autoCollect.setEnabled("plantfood",v)}
+        {type:"toggle",key:"show-auto-collect",label:"Настроить автоподбор предметов",description:"Открывает выбор предметов. При выключении все вложенные галочки снимаются и автоподбор прекращается сразу.",getValue:()=>current.autoCollect.enabled,setValue:v=>current.autoCollect.setActive(v)},
+        {type:"toggle",key:"auto-collect-other",label:"Автоподбор прочего дропа",visible:()=>current.autoCollect.enabled,description:"Монеты, алмазы, ростки и билеты. Солнце и листики подкормки включаются отдельно. Работает также для монет и алмазов в саду.",getValue:()=>current.autoCollect.preferences.other,setValue:v=>current.autoCollect.setEnabled("other",v)},
+        {type:"toggle",key:"auto-collect-sun",label:"Автоподбор солнца",visible:()=>current.autoCollect.enabled,description:"Собирает обычное солнце штатным способом. Опасные солнечные бомбы не активирует.",getValue:()=>current.autoCollect.preferences.sun,setValue:v=>current.autoCollect.setEnabled("sun",v)},
+        {type:"toggle",key:"auto-collect-plantfood",label:"Автоподбор листиков подкормки",visible:()=>current.autoCollect.enabled,description:"Собирает листики, когда в банке есть место. Подкормку на растения не расходует.",getValue:()=>current.autoCollect.preferences.plantfood,setValue:v=>current.autoCollect.setEnabled("plantfood",v)}
       ]},{title:"Улучшения игры",items:[
         {type:"toggle",key:"planning-boost-fix",label:"Убирать копии от начального буста до старта раунда",description:"Во время подготовки буст из сада или за алмазы расходуется по игровой логике, но не создаёт копии. После запуска раунда копии и удобрение листиком действуют как обычно.",getValue:()=>current.planning.enabled,setValue:v=>current.planning.setEnabled(v)},
         {type:"toggle",key:"custom-game-speed",label:"Изменить стандартный множитель ускорения",description:"Заменяет ускорение штатной кнопки выбранным множителем. Пока ускорение выключено, скорость остаётся обычной.",getValue:()=>current.speed.enabled,setValue:v=>current.speed.setEnabled(v)},

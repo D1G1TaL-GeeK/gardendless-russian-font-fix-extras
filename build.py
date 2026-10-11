@@ -8,7 +8,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent
 MODULES = ("font-slots.mjs", "paid-powerups.mjs", "layout-ui.mjs", "font-preview.mjs", "planning-boost.mjs", "game-speed.mjs", "settings-view.mjs", "tip-party.mjs", "auto-collect.mjs", "text-fit.mjs")
-DOCS = ("README.md", "README.ru.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "PUBLISHING.md", "CHANGELOG.md", "RELEASE-1.0.2.md")
+DOCS = ("README.md", "README.ru.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "PUBLISHING.md", "CHANGELOG.md", "RELEASE-1.0.3.md")
 
 
 def bundle():
