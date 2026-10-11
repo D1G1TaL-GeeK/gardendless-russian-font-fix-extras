@@ -201,63 +201,49 @@ const screenshots = [
   }
 ];
 
+
 let selected = 0;
-let language = 'en';
+const language = document.documentElement.lang === 'ru' ? 'ru' : 'en';
+const imageBase = new URL('.', document.currentScript.src);
 const photo = document.getElementById('photo');
 const caption = document.getElementById('caption');
 const counter = document.getElementById('counter');
 const original = document.getElementById('original');
 const thumbnails = document.getElementById('thumbnails');
-const dictionary = {
-  en: { heading: 'See the mod in game', intro: 'Russian fonts, menus, hints, dialogue and garden layouts — 20 real game screenshots.', previous: 'Previous screenshot', next: 'Next screenshot', original: 'Open full size', all: 'All screenshots', download: 'Download the mod', source: 'Source code', note: 'Captured in version 1.0 with user-selected settings. Optional features shown here may be enabled manually. Game artwork belongs to its respective owners.', keys: 'Use ← / → to browse. Click any thumbnail to jump to it.' },
-  ru: { heading: 'Посмотрите мод в игре', intro: 'Русские шрифты, меню, подсказки, диалоги и оформление сада — 20 игровых скриншотов.', previous: 'Предыдущий скриншот', next: 'Следующий скриншот', original: 'Открыть полный размер', all: 'Все скриншоты', download: 'Скачать мод', source: 'Исходный код', note: 'Снимки сделаны в версии 1.0 с пользовательскими настройками. Дополнительные функции могут быть включены вручную. Права на графику игры принадлежат её авторам.', keys: 'Листайте клавишами ← / → или нажмите нужную миниатюру.' }
-};
+const thumbnailLinks = [...thumbnails.querySelectorAll('[data-screenshot]')];
+
 function show(index) {
   selected = (index + screenshots.length) % screenshots.length;
   const current = screenshots[selected];
-  photo.src = current.image;
+  photo.src = new URL(current.image, imageBase).href;
   photo.alt = current[language];
+  photo.width = current.width;
+  photo.height = current.height;
   caption.textContent = current[language];
   counter.textContent = `${selected + 1} / ${screenshots.length}`;
-  original.href = current.image;
-  [...thumbnails.children].forEach((button, i) => {
-    button.setAttribute('aria-pressed', String(i === selected));
-    button.title = screenshots[i][language];
-    button.querySelector('img').alt = screenshots[i][language];
-    button.querySelector('span').textContent = screenshots[i][language];
-  });
+  original.href = new URL(current.image, imageBase).href;
+  thumbnailLinks.forEach((link, i) => link.setAttribute('aria-current', String(i === selected)));
   const upcoming = new Image();
-  upcoming.src = screenshots[(selected + 1) % screenshots.length].image;
+  upcoming.src = new URL(screenshots[(selected + 1) % screenshots.length].image, imageBase).href;
 }
-for (const [i, shot] of screenshots.entries()) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  const img = document.createElement('img');
-  img.src = shot.image;
-  img.loading = 'lazy';
-  img.width = shot.width;
-  img.height = shot.height;
-  const name = document.createElement('span');
-  button.append(img, name);
-  button.addEventListener('click', () => show(i));
-  thumbnails.append(button);
+
+for (const link of thumbnailLinks) {
+  link.addEventListener('click', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    show(Number(link.dataset.screenshot));
+  });
 }
+
 document.getElementById('previous').addEventListener('click', () => show(selected - 1));
 document.getElementById('next').addEventListener('click', () => show(selected + 1));
 document.addEventListener('keydown', event => {
   if (event.altKey || event.ctrlKey || event.metaKey || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
   if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-    event.preventDefault(); show(selected + (event.key === 'ArrowRight' ? 1 : -1));
+    event.preventDefault();
+    show(selected + (event.key === 'ArrowRight' ? 1 : -1));
   }
 });
-function setLanguage(value) {
-  language = value;
-  document.documentElement.lang = value;
-  document.querySelectorAll('[data-text]').forEach(element => element.textContent = dictionary[value][element.dataset.text]);
-  document.getElementById('previous').setAttribute('aria-label', dictionary[value].previous);
-  document.getElementById('next').setAttribute('aria-label', dictionary[value].next);
-  document.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === value)));
-  show(selected);
-}
-document.querySelectorAll('[data-language]').forEach(button => button.addEventListener('click', () => setLanguage(button.dataset.language)));
-setLanguage('en');
+document.getElementById('previous').hidden = false;
+document.getElementById('next').hidden = false;
+show(0);

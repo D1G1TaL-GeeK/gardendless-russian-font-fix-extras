@@ -1,10 +1,19 @@
-# Russian Font Display Fix & Extras
+# PvZ2 Gardendless — Russian Font Display Fix & Extras
 
-Version **1.0.3**. A GP-Next JavaScript mod for PvZ2 Gardendless: readable Russian fonts, improved interface spacing, and optional gameplay extras.
+Version **1.0.3**. A free GP-Next JavaScript mod for **Plants vs. Zombies 2: Gardendless**: readable Russian/Cyrillic fonts, improved interface spacing, and optional gameplay extras. It fixes fonts and layout alongside a separate Russian translation pack; it does not include a complete game translation.
+
+**По-русски:** мод для PvZ2 Gardendless, исправляющий русские шрифты и интерфейс. Отдельные настройки автоподбора предметов, солнца и подкормки; ускорение игры от 1× до 10×. Для русского текста нужен отдельный русификатор.
 
 Version 1.0.3 replaces the withdrawn 1.0.2: English GP-Next panel, English loading before translation registration, a master auto-collection switch that clears its children, and Piñata Party hidden throughout menu-transition tips. All accumulated font, interface and optional gameplay changes remain. [All changes](CHANGELOG.md).
 
 [Download 1.0.3](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/releases/tag/v1.0.3) · [Русское описание](README.ru.md) · [License](LICENSE) · [Font licenses](THIRD_PARTY_NOTICES.md)
+
+[Project website, features and font preview](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/) · [GP-Next installation guide](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/installation/) · [Сайт и установка на русском](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/ru/)
+
+- **Fonts:** 15 families, five independent original font slots and native live previews.
+- **Interface:** text fitting, dialogue sizing, Almanac spacing, HUD margins and menu-tip layout fixes.
+- **Optional settings:** separate auto-collection categories, live game speed from 1× to 10× and editable power-up prices.
+- **Checked compatibility:** Gardendless 0.15.0 and GP-Next 1.5.4 / 1.5.5. Install through F9 → Mods → Import ZIP.
 
 ## Screenshots
 
@@ -12,7 +21,7 @@ The gallery contains 20 real screenshots captured in earlier versions with user-
 
 Open the gallery below, then use **Previous / Next** to browse the earlier screenshots.
 
-[Open the interactive gallery →](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/) · [All screenshots / Все скриншоты](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/SCREENSHOTS.md)
+[Open the interactive gallery →](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/#gallery) · [All screenshots / Все скриншоты](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/SCREENSHOTS.md)
 
 ## AI provenance and support
 

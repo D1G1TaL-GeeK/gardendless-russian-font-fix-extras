@@ -14,3 +14,9 @@ For development and player updates, import the ZIP/folder through GP-Next. Do no
 The manifest accepts GP-Next `>=1.5.4 <2.0.0`, API v2 and pack format v1, and requires `experimental.jsModding`. Isolated checks cover Gardendless 0.15.0 / Cocos 3.8.4 and GP-Next 1.5.4/1.5.5. A separate translation pack is required for Russian text. Other versions/mods may need adaptation.
 
 Retain the publisher's AI OpenAI GPT 6.1 declaration, no-support/no-maintenance commitment, MIT notice, and third-party SIL OFL 1.1 notices. Complete source may be downloaded, modified, forked, redistributed, and used personally or commercially under those licenses.
+
+## Project website
+
+GitHub Pages publishes `main:/docs`. Run `python tools/build_site.py` after changing website copy or the mod version, then `python tools/check_site.py`. Commit the generated HTML, `docs/sitemap.xml`, preview asset and their source together. Update `UPDATED` in the site builder only when page content changes significantly. Keep both languages at stable, separate URLs with reciprocal `hreflang` and self-canonical links.
+
+Website/documentation-only changes can be pushed to `main` without creating a new mod release or replacing existing release assets. See [SEARCH_VISIBILITY.md](SEARCH_VISIBILITY.md) for search-engine ownership verification and sitemap submission. Preserve real verification tags/files if added later; do not invent verification tokens or add them to a published release package.

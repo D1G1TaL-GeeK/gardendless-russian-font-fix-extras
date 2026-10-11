@@ -67,14 +67,16 @@ def main():
     entry.parent.mkdir(exist_ok=True)
     entry.write_bytes(release_files["scripts/main.mjs"])
     source_files = {name: data for name, data in release_files.items()}
-    for name in ("build.py", ".gitignore", ".gitattributes", "PUBLISHING.md"):
+    for name in ("build.py", ".gitignore", ".gitattributes", "PUBLISHING.md", "SEARCH_VISIBILITY.md"):
         source_files[name] = (ROOT / name).read_bytes()
     for folder in ("src", "tests"):
         for path in sorted((ROOT / folder).glob("*.mjs")):
             source_files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
+    for path in sorted((ROOT / "tools").glob("*.py")):
+        source_files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
     source_files["SCREENSHOTS.md"] = (ROOT / "SCREENSHOTS.md").read_bytes()
     for path in sorted((ROOT / "docs").rglob("*")):
-        if path.is_file() and path.suffix in (".png", ".md", ".html", ".css", ".js", ""):
+        if path.is_file() and path.suffix in (".png", ".md", ".html", ".css", ".js", ".xml", ""):
             source_files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
     version = json.loads((ROOT / "pack.json").read_text(encoding="utf-8"))["version"]
     entries = (

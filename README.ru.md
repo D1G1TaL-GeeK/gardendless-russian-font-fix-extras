@@ -1,10 +1,17 @@
-# Russian Font Display Fix & Extras
+# PvZ2 Gardendless — русские шрифты и исправления интерфейса
 
-Версия **1.0.3**. Мод для PvZ2 Gardendless через GP-Next: читаемые русские шрифты, отступы и размещение интерфейса, дополнительные настройки игры.
+**Russian Font Display Fix & Extras, версия 1.0.3.** Бесплатный мод GP-Next для **Plants vs. Zombies 2: Gardendless**: читаемые русские шрифты и кириллица, отступы интерфейса, улучшенные диалоги и дополнительные настройки игры. Работает вместе с отдельным русификатором; полного перевода игры в этом пакете нет.
 
 Версия 1.0.3 заменяет снятую 1.0.2: исправлен английский язык панели GP-Next, загрузка начинается на английском до регистрации русского перевода, выключение общего пункта автоподбора сбрасывает вложенные галочки, а пиньята скрывается во время подсказок перехода между меню. Все накопленные правки сохранены. [Полный список изменений](CHANGELOG.md).
 
 [Скачать 1.0.3](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/releases/tag/v1.0.3) · [English description](README.md) · [Лицензия кода](LICENSE) · [Лицензии шрифтов](THIRD_PARTY_NOTICES.md)
+
+[Сайт проекта, возможности и шрифты](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/ru/) · [Инструкция установки через GP-Next](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/ru/installation/) · [English website](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/)
+
+- **Шрифты:** 15 семейств, пять независимо настраиваемых исходных шрифтов и живой предпросмотр.
+- **Интерфейс:** подгонка текста, размеры диалогов, отступы альманаха и игрового интерфейса, размещение подсказок.
+- **Дополнительно:** раздельный автоподбор предметов, солнца и листиков подкормки, ускорение от 1× до 10× во время игры, настройка цен усилений.
+- **Проверены:** Gardendless 0.15.0 и GP-Next 1.5.4 / 1.5.5. Установка через F9 → Mods → Import ZIP.
 
 ## Скриншоты
 
@@ -12,7 +19,7 @@
 
 Нажмите миниатюру и листайте все 20 снимков кнопками **Назад / Далее**.
 
-[Открыть галерею с перелистыванием →](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/) · [All screenshots / Все скриншоты](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/SCREENSHOTS.md)
+[Открыть галерею с перелистыванием →](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/ru/#gallery) · [All screenshots / Все скриншоты](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/SCREENSHOTS.md)
 
 ## Происхождение и поддержка
 
