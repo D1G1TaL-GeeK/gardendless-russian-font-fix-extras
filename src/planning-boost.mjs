@@ -10,8 +10,8 @@ export function createPlanningController(native,log={}) {
     if(owner!==phaseOwner||active!==phaseActive){phaseOwner=owner;phaseActive=active;phaseToken=active?{owner}:null;}
     return phaseToken;
   }
-   
-   
+
+
   const preparing=token=>!!token&&token===phase();
   function patch(proto,key,make){
     const original=proto?.[key];if(typeof original!=="function")return;
@@ -35,16 +35,16 @@ export function createPlanningController(native,log={}) {
       patch(cell,"PlaceUIPlant",original=>function(...args){
         const owner=phase(),card=this.UIInGame?.currentCF??native.UIInGame?.component?.currentCF;
         if(!preparing(owner)||!card?.BOOSTED||!(card.PF?.BOOST>0)||typeof this.scheduleOnce!=="function")return original.apply(this,args);
-         
-         
+
+
         const own=Object.getOwnPropertyDescriptor(this,"scheduleOnce"),schedule=this.scheduleOnce,ticket={owner,card},cell=this;
         this.scheduleOnce=function(callback,...rest){return schedule.call(this,function(...a){const previous=placements.get(cell);placements.set(cell,ticket);try{return callback.apply(this,a);}finally{if(previous)placements.set(cell,previous);else placements.delete(cell);}},...rest);};
         try{return original.apply(this,args);}finally{if(own)Object.defineProperty(this,"scheduleOnce",own);else delete this.scheduleOnce;}
       });
       patch(cell,"SpawnPlantByType",original=>function(...args){
-         
-         
-         
+
+
+
         const owner=phase(),ticket=placements.get(this),card=ticket?.card;
         const placement=preparing(owner)&&ticket?.owner===owner&&!!card?.BOOSTED&&card.PF?.BOOST>0&&args[1]===false&&args[2]===true&&args[3]===true&&args[4]===true&&args[6]===true;
         const transfer=preparing(owner)&&args[1]===true&&args[2]===true&&args[3]===false&&args[4]===true&&args[5]===undefined?(transfers.get(this)??[]).find(t=>!t.used&&t.owner===owner&&t.type===args[0]):null;
@@ -69,8 +69,8 @@ export function createPlanningController(native,log={}) {
     const imitater=native.ImitaterPlant?.prototype;
     if(imitater&&!bound.has(imitater)){
       bound.add(imitater);
-       
-       
+
+
       patch(imitater,"food",original=>function(...args){
         const owner=pending.get(this),previous=imitated.get(this);pending.delete(this);imitated.delete(this);
         const result=original.apply(this,args);

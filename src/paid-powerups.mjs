@@ -1,4 +1,3 @@
- 
 export const DEFAULT_PRICES = Object.freeze({snow:1150,toss:950,zap:800,flame:1200,cherry:1500,food:1000});
 const KEY="local.gardendless.russian-font-fix.powerups.v1";
 const INDEX=["flame","snow","toss","zap","cherry"];
@@ -29,18 +28,18 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
   }
   function cancel(p=PowerupFingers?.component) {
     if(!p)return;p.countDown=0;p.mousePushed=false;leases.delete(p);
-     
+
     try{Promise.resolve(p.tryChangingIndex?.(-1,null,true)).catch(e=>log.warn?.(String(e)));}catch(e){log.warn?.(String(e));}
   }
   function syncCoin(value,animate=false) {
     const c=CoinCount?.component;
-     
+
     if(c&&c.isValid!==false) {c._value=value;if(!animate)c.shownValue=value;}
   }
   function revealWallet() {
     const collector=CoinCollecterInGame?.component;
-     
-     
+
+
     if(collector?.node&&collector.isValid!==false)collector.hidden=false;
   }
   function rejected() {
@@ -77,7 +76,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     try{const s=cc.sys?.localStorage,raw=s?.getItem("PvZ2_Settings"),v=raw&&JSON.parse(raw);if(v&&v.AllowCheats!==false)s.setItem("PvZ2_Settings",JSON.stringify({...v,AllowCheats:false}));}catch(e){log.warn?.(`Читы выключены на этот запуск: ${String(e?.message??e)}`);}
   }
   function bindHooks(){
-   
+
   if(SettingWindow&&!patched.get(SettingWindow)?.has("allowCheat")) {
     let keys=patched.get(SettingWindow);if(!keys){keys=new Set();patched.set(SettingWindow,keys);}keys.add("allowCheat");
     const desc=Object.getOwnPropertyDescriptor(SettingWindow,"allowCheat");let value=SettingWindow.allowCheat;
@@ -106,9 +105,9 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
   });
   patch(LnC?.prototype,"onMouseDown",original=>function(event,...args) {
     const power=PowerupFingers?.component;
-     
-     
-     
+
+
+
     if(power?.index===4&&UIInGame?.index===-5&&event?.getButton?.()===0&&this.isInLawn?.()&&level()?.gameStarted) {
       if(locked()&&preferences.mode!=="coins"&&!required(power))return;
       if(preferences.mode==="coins"&&!required(power)) {
@@ -134,24 +133,29 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     if(event&&typeof event==="object")events.add(event);
     if(!debit(preferences.prices.food))return;
     lastFood=time;
-     
+
     this.plantFoodAdd();
   });
-   
-   
+
+
   patch(PlantFoodCount?.prototype,"_show",original=>function(...args) {
     const pos=foodPositions.get(this)??this.addButton?.position?.clone?.();const result=original.apply(this,args);
-    if(preferences.mode==="coins"&&pos&&this.addButton){this.addButton.setPosition(pos);this.addButton.active=true;}
+    if(preferences.mode==="coins"&&pos&&this.addButton){placeFoodPurchase(this.addButton,pos);this.addButton.active=true;}
     return result;
   });
   patch(PlantFoodCount?.prototype,"onLoad",original=>function(...args){const result=original.apply(this,args);if(this.addButton?.position?.clone)foodPositions.set(this,this.addButton.position.clone());return result;});
   }
   bindHooks();
+  const shiftedFoodButtons=new Set();
+  function placeFoodPurchase(button,pos) {
+    const parentScale=Math.max(.001,Math.abs(Number(button.parent?.worldScale?.x)||1));
+    button.setPosition(pos.x-8/parentScale,pos.y,pos.z);shiftedFoodButtons.add(button);
+  }
   function bindExistingCallback(instance,key,button) {
     const original=instance&&originals.get(Object.getPrototypeOf(instance))?.get(key),event=cc.Node?.EventType?.MOUSE_DOWN;
     if(!original||!button?.on||!event||boundCallbacks.has(instance))return;
-     
-     
+
+
     const wrapped=instance[key];button.off(event,original,instance);button.off(event,wrapped,instance);button.on(event,wrapped,instance);boundCallbacks.add(instance);
     undo.push(()=>{if(button.isValid!==false){button.off(event,wrapped,instance);button.on(event,original,instance);}});
   }
@@ -173,8 +177,8 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     const b=badge(parent,key);if(!b)return;
     b.node.active=preferences.mode==="coins";
     const ui=parent.getComponent?.(cc.UITransform),height=ui?.height??146;
-     
-     
+
+
     b.node.setScale(1,1,1);b.node.setPosition(0,-height*.43,0);
     b.label.string=String(preferences.prices[key]);b.opacity.opacity=available?255:120;
     if(preferences.mode==="coins"&&cc.UIOpacity){let s=visuals.get(parent);if(!s){let opacity=parent.getComponent(cc.UIOpacity),owned=!opacity;if(!opacity)opacity=parent.addComponent(cc.UIOpacity);s={opacity,owned,before:opacity.opacity};visuals.set(parent,s);}s.opacity.opacity=available?s.before:155;}
@@ -213,10 +217,10 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
         const available=allowedPower(p)&&balance()>=preferences.prices[key];
         priceBadge(button.node,key,available);if(paid)button.interactable=p.countDown>0?false:available;
       }
-       
-       
+
+
     }
-    if(food?.addButton){bindExistingCallback(food,"onAddMouseDown",food.addButton);remember(food.addButton);if(!foodPositions.has(food)&&food.addButton.position?.clone){const pos=food.addButton.position.clone();if(food.shown&&pos.x<-800&&pos.y>800){pos.x+=1000;pos.y-=1000;}foodPositions.set(food,pos);}if(paid){const pos=foodPositions.get(food);if(pos)food.addButton.setPosition(pos);food.addButton.active=!!food.shown&&!!level()?.showPlantfood&&current()?.features?.feature_plantfood===true;priceBadge(food.addButton,"food",balance()>=preferences.prices.food&&food.plantFoodNum<food.maxCount);}else {const b=badges.get(food.addButton);if(b)b.node.active=false;food.addButton.active=locked()?false:nodes.get(food.addButton).active;}}
+    if(food?.addButton){bindExistingCallback(food,"onAddMouseDown",food.addButton);remember(food.addButton);if(!foodPositions.has(food)&&food.addButton.position?.clone){const pos=food.addButton.position.clone();if(food.shown&&pos.x<-800&&pos.y>800){pos.x+=1000;pos.y-=1000;}foodPositions.set(food,pos);}if(paid){const pos=foodPositions.get(food);if(pos)placeFoodPurchase(food.addButton,pos);food.addButton.active=!!food.shown&&!!level()?.showPlantfood&&current()?.features?.feature_plantfood===true;priceBadge(food.addButton,"food",balance()>=preferences.prices.food&&food.plantFoodNum<food.maxCount);}else {if(shiftedFoodButtons.delete(food.addButton)){const pos=foodPositions.get(food);if(pos)food.addButton.setPosition(pos);}const b=badges.get(food.addButton);if(b)b.node.active=false;food.addButton.active=locked()?false:nodes.get(food.addButton).active;}}
     for(const [parent,b] of badges)if(parent.isValid===false){b.node.destroy?.();badges.delete(parent);}else if(!paid)b.node.active=false;
     for(const [node,s]of feedback)if(node.isValid===false){s.tween?.stop?.();feedback.delete(node);}else if(!s.button.interactable&&s.hover)s.reset();
     for(const [node,s] of visuals)if(node.isValid!==false&&(!paid||required(p)&&node!==food?.addButton))s.opacity.opacity=s.before;

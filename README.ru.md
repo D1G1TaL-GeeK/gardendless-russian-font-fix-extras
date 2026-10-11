@@ -1,51 +1,53 @@
 # Russian Font Display Fix & Extras
 
-Версия 1.0.1 уменьшает текст целей перед уровнем и в окне паузы. Переносы строк и общий ползунок размера продолжают работать.
+Версия **1.0.2**. Мод для PvZ2 Gardendless через GP-Next: читаемые русские шрифты, отступы и размещение интерфейса, дополнительные настройки игры.
 
-Версия **1.0.1**. Мод для PvZ2 Gardendless через GP-Next: исправление отображения русского шрифта и дополнительные возможности оформления и игры.
+В обновление вошли пять отдельных шрифтов с живыми образцами, независимый автоподбор, настройка ускорения 1–10× во время игры и накопленные исправления диалогов, подсказок, Альманаха, магазина и интерфейса уровня. Проверены форма настроек и формат пакетов **GP-Next 1.5.5**. [Полный список изменений](CHANGELOG.md).
 
-[English description](README.md) · [Лицензия кода](LICENSE) · [Источники и лицензии шрифтов](THIRD_PARTY_NOTICES.md)
+[Скачать 1.0.2](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/releases/tag/v1.0.2) · [English description](README.md) · [Лицензия кода](LICENSE) · [Лицензии шрифтов](THIRD_PARTY_NOTICES.md)
 
 ## Скриншоты
 
+В галерее 20 настоящих скриншотов прежних версий с выбранными пользователем настройками. Новые настройки описаны ниже.
+
 Нажмите миниатюру и листайте все 20 снимков кнопками **Назад / Далее**.
 
-[Открыть галерею с перелистыванием →](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/) · [All screenshots / Все скриншоты](SCREENSHOTS.md)
+[Открыть галерею с перелистыванием →](https://d1g1tal-geek.github.io/gardendless-russian-font-fix-extras/) · [All screenshots / Все скриншоты](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/SCREENSHOTS.md)
 
 <table>
   <tr>
-    <td align="center" width="33%"><a href="docs/gallery/01-bonus-reward.md"><img src="docs/screenshots/01-bonus-reward.png" width="240" alt="Bonus reward"></a><br><sub>01. Bonus reward</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/02-world-map.md"><img src="docs/screenshots/02-world-map.png" width="240" alt="Ancient Egypt world map"></a><br><sub>02. Ancient Egypt world map</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/03-plant-shop.md"><img src="docs/screenshots/03-plant-shop.png" width="240" alt="Plant shop"></a><br><sub>03. Plant shop</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/01-bonus-reward.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/01-bonus-reward.png" width="240" alt="Bonus reward"></a><br><sub>01. Bonus reward</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/02-world-map.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/02-world-map.png" width="240" alt="Ancient Egypt world map"></a><br><sub>02. Ancient Egypt world map</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/03-plant-shop.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/03-plant-shop.png" width="240" alt="Plant shop"></a><br><sub>03. Plant shop</sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><a href="docs/gallery/04-coin-shop.md"><img src="docs/screenshots/04-coin-shop.png" width="240" alt="Coin shop"></a><br><sub>04. Coin shop</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/05-standard-garden.md"><img src="docs/screenshots/05-standard-garden.png" width="240" alt="Standard Zen Garden"></a><br><sub>05. Standard Zen Garden</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/06-water-garden.md"><img src="docs/screenshots/06-water-garden.png" width="240" alt="Water Zen Garden"></a><br><sub>06. Water Zen Garden</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/04-coin-shop.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/04-coin-shop.png" width="240" alt="Coin shop"></a><br><sub>04. Coin shop</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/05-standard-garden.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/05-standard-garden.png" width="240" alt="Standard Zen Garden"></a><br><sub>05. Standard Zen Garden</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/06-water-garden.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/06-water-garden.png" width="240" alt="Water Zen Garden"></a><br><sub>06. Water Zen Garden</sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><a href="docs/gallery/07-plant-decoding.md"><img src="docs/screenshots/07-plant-decoding.png" width="240" alt="Plant decoding minigame"></a><br><sub>07. Plant decoding minigame</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/08-game-settings.md"><img src="docs/screenshots/08-game-settings.png" width="240" alt="Game settings"></a><br><sub>08. Game settings</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/09-more-settings.md"><img src="docs/screenshots/09-more-settings.png" width="240" alt="Additional game settings"></a><br><sub>09. Additional game settings</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/07-plant-decoding.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/07-plant-decoding.png" width="240" alt="Plant decoding minigame"></a><br><sub>07. Plant decoding minigame</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/08-game-settings.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/08-game-settings.png" width="240" alt="Game settings"></a><br><sub>08. Game settings</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/09-more-settings.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/09-more-settings.png" width="240" alt="Additional game settings"></a><br><sub>09. Additional game settings</sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><a href="docs/gallery/10-world-chooser.md"><img src="docs/screenshots/10-world-chooser.png" width="240" alt="World selection"></a><br><sub>10. World selection</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/11-mod-manager.md"><img src="docs/screenshots/11-mod-manager.png" width="240" alt="GP-Next mod manager"></a><br><sub>11. GP-Next mod manager</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/12-font-settings.md"><img src="docs/screenshots/12-font-settings.png" width="240" alt="Font settings"></a><br><sub>12. Font settings</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/10-world-chooser.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/10-world-chooser.png" width="240" alt="World selection"></a><br><sub>10. World selection</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/11-mod-manager.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/11-mod-manager.png" width="240" alt="GP-Next mod manager"></a><br><sub>11. GP-Next mod manager</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/12-font-settings.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/12-font-settings.png" width="240" alt="Font settings"></a><br><sub>12. Font settings</sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><a href="docs/gallery/13-live-font-preview.md"><img src="docs/screenshots/13-live-font-preview.png" width="240" alt="Live font previews and optional fixes"></a><br><sub>13. Live font previews and optional fixes</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/14-game-hint.md"><img src="docs/screenshots/14-game-hint.png" width="240" alt="In-game hint"></a><br><sub>14. In-game hint</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/15-almanac.md"><img src="docs/screenshots/15-almanac.png" width="240" alt="Plant Almanac"></a><br><sub>15. Plant Almanac</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/13-live-font-preview.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/13-live-font-preview.png" width="240" alt="Live font previews and optional fixes"></a><br><sub>13. Live font previews and optional fixes</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/14-game-hint.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/14-game-hint.png" width="240" alt="In-game hint"></a><br><sub>14. In-game hint</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/15-almanac.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/15-almanac.png" width="240" alt="Plant Almanac"></a><br><sub>15. Plant Almanac</sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><a href="docs/gallery/16-upgrade-controls.md"><img src="docs/screenshots/16-upgrade-controls.png" width="240" alt="Upgrade controls"></a><br><sub>16. Upgrade controls</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/17-plant-medals.md"><img src="docs/screenshots/17-plant-medals.png" width="240" alt="Plant medals and families"></a><br><sub>17. Plant medals and families</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/18-world-information.md"><img src="docs/screenshots/18-world-information.png" width="240" alt="World information"></a><br><sub>18. World information</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/16-upgrade-controls.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/16-upgrade-controls.png" width="240" alt="Upgrade controls"></a><br><sub>16. Upgrade controls</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/17-plant-medals.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/17-plant-medals.png" width="240" alt="Plant medals and families"></a><br><sub>17. Plant medals and families</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/18-world-information.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/18-world-information.png" width="240" alt="World information"></a><br><sub>18. World information</sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><a href="docs/gallery/19-battle-hud.md"><img src="docs/screenshots/19-battle-hud.png" width="240" alt="Battle interface"></a><br><sub>19. Battle interface</sub></td>
-    <td align="center" width="33%"><a href="docs/gallery/20-dialogue.md"><img src="docs/screenshots/20-dialogue.png" width="240" alt="Dialogue"></a><br><sub>20. Dialogue</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/19-battle-hud.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/19-battle-hud.png" width="240" alt="Battle interface"></a><br><sub>19. Battle interface</sub></td>
+    <td align="center" width="33%"><a href="https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/blob/main/docs/gallery/20-dialogue.md"><img src="https://raw.githubusercontent.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/main/docs/screenshots/20-dialogue.png" width="240" alt="Dialogue"></a><br><sub>20. Dialogue</sub></td>
   </tr>
 </table>
 
@@ -55,31 +57,49 @@
 
 Разработчик/издатель **не берёт на себя обязательства отвечать на сообщения о багах, оказывать поддержку, исправлять, улучшать, сопровождать, обновлять мод или адаптировать его к новым версиям игры**. Мод предоставляется «как есть», без гарантий. Любой желающий может создать и поддерживать собственную версию на условиях приложенных лицензий.
 
-## Установка
+## Требования и установка
 
-Мод рассчитан на **Gardendless 0.15.0, GP-Next 1.5.4 и Cocos 3.8.4**. В манифесте указан диапазон GP-Next `>=1.5.4 <2.0.0`, но совместимость с более поздними версиями не гарантируется. Нужна включённая возможность `experimental.jsModding`. Для русского текста в игре требуется отдельный включённый русификатор: этот мод не содержит полного перевода.
+Мод рассчитан на **Gardendless 0.15.0 / Cocos 3.8.4**. Отдельные автоматические проверки выполнены для **GP-Next 1.5.4 и 1.5.5**. Манифест допускает `>=1.5.4 <2.0.0`; другие версии не проверены. Игроку не нужны Python, Node.js, компилятор, аккаунт или платный сервис.
 
-1. Скачайте **Russian_Font_Display_Fix_Extras_1.0.1.zip** из файлов релиза.
-2. Вернитесь в главное меню. Откройте **F9 → Mods → Import ZIP** и импортируйте архив без распаковки.
-3. Включите мод. Если GP-Next запросит доверие к коду, ознакомьтесь с архивом и подтвердите запрос самостоятельно.
-4. Сохраните конфигурацию, полностью закройте игру и запустите снова. Перезапуска уровня недостаточно.
+Для русского текста игры требуется отдельный включённый **русификатор**. Этот мод исправляет шрифты и размещение, но не содержит полного перевода и не привязан обязательной зависимостью к одному ID русификатора.
 
-Автоматические архивы GitHub **Source code** предназначены для разработки. Для установки используйте готовый ZIP мода. Для удаления отключите мод, сохраните конфигурацию и полностью перезапустите игру.
+1. Скачайте **[Russian_Font_Display_Fix_Extras_1.0.2.zip](https://github.com/D1G1TaL-GeeK/gardendless-russian-font-fix-extras/releases/download/v1.0.2/Russian_Font_Display_Fix_Extras_1.0.2.zip)** из файлов релиза.
+2. Вернитесь в главное меню. Откройте **F9 → Experimental → JS Modding**, включите возможность и прочитайте/подтвердите уведомление GP-Next о скриптах.
+3. Откройте **Mods → Import ZIP**, выберите архив без распаковки и проверьте название/версию. Отдельно установите и включите русификатор.
+4. Включите **Russian Font Display Fix & Extras**. Ознакомьтесь с пакетом и подтвердите доверие к скрипту; при обновлении GP-Next может запросить его повторно.
+5. Сохраните/примените выбор модов, полностью закройте игру и запустите снова. Перезапуска уровня недостаточно.
+6. В **F9 → Mods** откройте подробности мода либо **State and controls → Русский шрифт и размеры**. Пункты мода подписаны по-русски; язык панели GP-Next выбирается отдельно.
 
-Настройки: **F9 → Mods → State and controls → Русский шрифт и размеры**. Собственные пункты мода подписаны по-русски; стандартная панель F9 остаётся на английском.
+**Обновление:** импортируйте новый ZIP с тем же ID мода. Корректные сохранённые настройки шрифтов, размера, языка, цен, автоподбора и ускорения остаются. Чтобы применить новый стандартный набор шрифтов к прежней установке, нажмите **«Вернуть рекомендуемое оформление»**. Не включайте одновременно две версии.
+
+Файл **_Source.zip** и автоматические архивы GitHub **Source code** предназначены для разработки. Для установки используйте ZIP без `_Source`. Для отключения/удаления используйте менеджер модов, сохраните/примените выбор и полностью перезапустите игру.
+
+### Ошибка запуска INSTALL_CORRUPT
+
+GP-Next проверяет байты установленных пакетов по записанной контрольной сумме ещё до загрузки движка. Прямое редактирование файлов внутри `gp-next/installed/` нарушает проверку и может дать `INSTALL_CORRUPT` вместе с `STARTUP_FAILED` на этапе `beforeEngineImport`, даже если `modIssues` пуст. Локальную копию, изменённую напрямую, нужно заменить через импорт ZIP/папки. Не редактируйте записи установки и не обходите проверку.
+
+На экране восстановления воспользуйтесь доступным переходом к менеджеру/импорту и заново импортируйте неизменённый пакет или этот релиз. Если менеджер недоступен, следуйте предложенному действию и **[официальной инструкции восстановления](https://pvzge.com/en/guide/mod/gp-next-recovery)**, затем повторите импорт через менеджер. Сохранения и резервные копии следует сохранить. Релиз содержит корректный пакет для импорта; скрипт мода не может починить повреждённую установленную копию до своей загрузки. Другие причины сбоя требуют полного текста ошибки.
 
 ## Стандартные настройки
+
+Реплики Пенни используют такой же базовый размер, как соответствующие реплики Дейва, сохраняя собственный выбор шрифта. Длинный текст подгоняется под ширину и высоту исходного облачка. Лопата в уровне слегка сдвинута влево вместе с отдельной подсказкой D.
+
+Эти же пять шрифтов выставляет кнопка «Вернуть рекомендуемое оформление». Сохранённый ручной выбор при обновлении остаётся.
 
 | Параметр | При первой установке |
 | --- | --- |
 | Язык запуска игры | Русский |
-| Основной шрифт | Ruslan Display |
-| Описания и советы | Shantell Sans Bold |
-| Реплики в диалогах | Nunito ExtraBold |
+| FBU — основной интерфейс | Shantell Sans Bold |
+| Brianne — реплики Дейва | Comfortaa Bold |
+| Ashley Script — реплики Зомбосса | Caveat Bold |
+| Pico12 — реплики Пенни | Comfortaa Bold |
+| House of Terror — предупреждения и поражение | Ruslan Display |
 | Размер текста | 68% |
 | Режим читов | Разрешить читы |
-| Исправления игры | Все галочки сняты; сейчас доступен фикс копий в планировании |
-| Редактор стоимости усилений | Свёрнут |
+| Автоподбор прочего дропа, солнца и листиков | Все три галочки сняты |
+| Улучшения игры | Все галочки сняты: исправление копий при планировании и изменение ускорения |
+| Множитель пользовательского ускорения | 2×; настройка выключена до установки галочки |
+| Редактор стоимости усилений и группа автоподбора | Свёрнуты |
 
 Ранее сохранённый ручной выбор сохраняется при обновлении. «Разрешить читы» разрешает штатный переключатель игры, но не включает читы автоматически: при необходимости включите их отдельно в игровых настройках.
 
@@ -87,23 +107,35 @@
 
 ### Шрифты, размер и предпросмотр
 
-- Независимый выбор основного шрифта, шрифта описаний/советов и диалогов. Описания и диалоги могут использовать вариант «Как основной».
+- Пять независимых настроек по оригинальным игровым шрифтам: **FBU** — интерфейс, кнопки, описания, цели, подсказки и счётчики; **Brianne** — Дейв; **Ashley Script** — Зомбосс; **Pico12** — Пенни; **House of Terror** — боевые предупреждения и поражение. Назначение описано рядом с каждым выбором.
+- Для каждого из пяти назначений доступен любой из 15 включённых шрифтов. Замена следует исходному файлу шрифта, включая смену персонажа в общем облачке. Старый основной выбор переносится в FBU и House of Terror, выбор диалогов — в три соответствующих назначения; отдельно сохранённые новые настройки имеют приоритет.
 - 15 семейств: Balsamiq Sans, Rubik Bubbles, Ruslan Display, Shantell Sans Bold, Pangolin, Underdog, Neucha, Lobster, Caveat Bold, Seymour One, Nunito ExtraBold, Rubik SemiBold, Comfortaa Bold, PT Sans Caption Bold и Marmelad. У Balsamiq включены обычное и жирное начертания.
 - Общий размер **50–80%**, стандарт — **68%**. Настройка применяется к поддерживаемым надписям, включая динамически создаваемые. Слишком крупный текст ограничивается доступной областью.
 - Подгонка переносов, высоты строк, расстояния между буквами, обводки и свободного места рядом со значками и соседними значениями.
-- Живые **образцы выбранных шрифтов**, которые рисует игровой движок: заголовок, описание и диалог с обводкой.
+- Пять живых **образцов выбранных шрифтов** с подписанными назначениями и обводкой рисует игровой движок. Изменение одного выбора сразу обновляет соответствующий образец.
 - Отдельные кнопки возвращения рекомендуемых шрифтов и стандартного размера; над кнопками предусмотрены отступы.
 - Загрузка шрифтов до отрисовки. При ошибке или таймауте используется Arial, причина появляется в журнале.
+
+![Пять назначений и живые образцы шрифтов](examples/native-font-slots.png)
 
 ### Интерфейс и подсказки
 
 - Подгонка русских заголовков, названий миров/уровней, кнопок, предупреждений, сообщений о поражении, наград, настроек и диалогов.
 - Переносы и размещение описаний, реплик, характеристик, подписей семейств/медалей и элементов улучшений в альманахе.
+- Верхние отступы и расстояния между абзацами описаний растений/зомби. Кнопки «Включено» и описания помещаются в карточках бонусов; заголовок медалей не прилегает к рамке.
+- Заголовок списка игроков помещается между кнопками исправления и закрытия; «Распродано» сохраняет ширину внутри своей карточки.
+- Подписи легенды Plant Decoding отделены от рамки, значков и друг друга.
 - Более крупный заголовок настроек и сохранение полного размера кнопки **«Включено»** у бонуса.
-- Читаемые многострочные цели уровня с выбранным шрифтом описаний, в том числе в паузе и у новых целей.
+- Читаемые многострочные цели уровня с выбранной заменой FBU, в том числе в паузе и у новых целей. Размер подгоняется близко к подписям звука и реагирует на общую настройку.
 - Счётчик оставшихся растений размещается внутри штатной плашки после значка растения.
-- Глобальные подсказки рисуются в отдельную измеренную текстуру с запасом для букв и обводки. Размещение учитывает иллюстрацию, маски прокрутки, перекрывающие панели и нижние кнопки событий. Время показа и закрытие сохраняют штатную механику.
+- Загрузочные подсказки **LoaderFlower**, включая текст о медалях растений и Мяте, получают собственную измеренную текстуру с запасом для настоящих границ букв и обводки. Исходная строка, показ и скрытие по анимации, смена текста через пять секунд и завершение загрузки остаются штатными.
+- Глобальные сообщения **GamingTips** обрабатываются отдельно: размещение учитывает иллюстрацию, маски прокрутки, перекрывающие панели и нижние кнопки событий. Время показа и закрытие сохраняют штатную механику.
+- Во время глобального уведомления карточка Piñata Party временно скрывается вместе со своими кнопками. Её таймер продолжает обновляться, а после уведомления возвращается актуальное состояние карточки.
 - Улучшение таймеров билетов и Piñata Party, вкладок и прокручиваемых карточек магазина, закрытия окон, цен, наград Arcade, подписей пользовательских уровней и пересечения кнопок медалей/выхода в альманахе.
+- Заголовок «Тестовые уровни» и кнопка «Играть в пользовательские уровни» занимают отдельные области. Прокрутка списка не меняет ширину и переносы подписи кнопки.
+- Надпись «Путешествие игрока…» поднимается над верхним краем активных кнопок усилений с небольшим отступом и не смещается всё выше при повторной обработке.
+- Нижнее название уровня центрируется между усилениями и панелью прогресса. Пауза/ускорение отодвинуты от краёв; лопата с D — немного левее, покупка подкормки — дальше от F.
+- Более крупная подпись «Сегодня вы заработали» в Arcade: до двух строк рядом со штатным числом и значком алмазов. Размер реагирует на общую настройку; сохраняются отступы до анимированной награды и кнопки запуска.
 - Сохранение штатных цифровых шрифтов валют и обычной игровой камеры/ввода. Надписи, нарисованные внутри картинок, настройкой шрифта не меняются.
 
 ### Дзен-сад
@@ -112,6 +144,7 @@
 - **Фон и все места посадки масштабируются вместе**, поэтому горшки остаются на столах, а водные ячейки — на своих местах.
 - Расчёт стремится заполнить экран, сохранить видимость всех ячеек и не перекрывать штатные кнопки. Декоративные края могут обрезаться. Если широкий водный сад не помещается при равномерном масштабе, весь сад подгоняется по двум осям одним общим преобразованием.
 - Сохранение штатных позиций управления, улучшение подписи быстрой лопаты и небольшое поднятие нижней группы счётчиков валют/ростков.
+- Внутренние отступы счётчиков валют, кнопки возврата, инструментов и медалей учитывают масштаб родителя и не накапливаются.
 
 ### Язык запуска
 
@@ -127,7 +160,7 @@
 | Разрешить читы | Разрешает штатную настройку; сами читы включаются отдельно. |
 | За монеты | Блокирует бесплатные читы, включая бесплатное солнце, и включает оплату усилений и подкормки. |
 
-При смене режима выбранное усиление отменяется, бесплатные читы выключаются. В режиме «За монеты» раскройте **«Настроить стоимость усилений»**. Кнопка **«Вернуть цены по умолчанию»** сбрасывает все шесть значений.
+При смене режима выбранное усиление отменяется, бесплатные читы выключаются. В режиме «За монеты» раскройте **«Настроить стоимость усилений»** непосредственно под выбором режима читов. Кнопка **«Вернуть цены по умолчанию»** сбрасывает все шесть значений.
 
 | Покупка | Стандартная цена, монет |
 | --- | ---: |
@@ -146,13 +179,40 @@
 - Отмена уже начавшегося оплаченного эффекта не возвращает монеты.
 - Наведение и нажатие дают визуальный отклик. Учитываются запреты уровня и обязательные учебные усиления. Смена профиля отменяет выбранное усиление.
 
+### Автоподбор
+
+В **«Читах и усилениях»** включите **«Настроить автоподбор предметов»**, чтобы раскрыть три независимые сохраняемые галочки. Все три вида подбора **выключены по умолчанию**. Сворачивание группы сохраняет выбранные галочки и не выключает уже работающий подбор:
+
+- **Автоподбор прочего дропа** — монеты, алмазы, ростки и билеты; также монеты и алмазы в саду.
+- **Автоподбор солнца** — обычное солнце, отдельно от остального дропа. Опасные солнечные бомбы не активируются.
+- **Автоподбор листиков подкормки** — листики, отдельно от солнца и остального дропа. При заполненном банке ждёт свободного места; собранная подкормка остаётся в банке.
+
+Выбор сохраняется и меняется прямо во время игры. Используются штатные методы сбора с наградами, звуками и анимациями. Мод учитывает паузу, завершение уровня и ограничения сбора; встроенный автоподбор конкретного уровня сохраняется. Эти переключатели работают независимо от режима оплаты усилений.
+
 ### Необязательное исправление копий при планировании
 
-**Исправления игры → Убирать копии от начального буста до старта раунда**. По умолчанию **выключено**.
+**Улучшения игры → Убирать копии от начального буста до старта раунда**. По умолчанию **выключено**.
 
 В подготовке Last Stand начальный буст из сада или за алмазы расходуется по штатной логике, но создаваемые этим бустом дополнительные копии подавляются. Это закрывает получение лишнего солнца за полную стоимость при выкапывании копий во время планирования. Мод сохраняет правила активации буста самой игры и не запускает его принудительно.
 
 Запрет заканчивается **сразу после запуска раунда**, включая отсчёт перед боем. Начальные бусты после старта и обычная подкормка листиком сохраняют создание копий. Учтены превращения подражателя и задержанные посадки. Другие режимы не затрагиваются. Выключение настройки возвращает обычное поведение.
+
+### Настраиваемое ускорение
+
+**Улучшения игры → Изменить стандартный множитель ускорения**. По умолчанию **выключено**. После установки галочки появляются ползунок и числовое поле: **1×–10× с шагом 0.1**. Они показывают одно значение и сохраняют его отдельно от прогресса игры.
+
+- При включённом штатном ускорении новое значение применяется сразу и сохраняется на следующих кадрах.
+- При обычной скорости настройка действует после следующего включения ускорения.
+- Изменение во время паузы не возобновляет игру; после продолжения применяется выбранное значение.
+- Снятие галочки во время уровня возвращает штатный множитель игры.
+- Звук и состояние штатной кнопки, автоматическое отключение ускорения при опасности, поражение, перезапуск и выход из уровня сохраняют игровую логику.
+- Ввод за пределами диапазона сохраняет последнее корректное значение; лишние десятичные знаки округляются до десятых.
+- Поле принимает `2.5` и `2,5`; Enter подтверждает значение. Поддерживаются клавиши разделителя на русской раскладке и десятичная клавиша цифрового блока.
+- Штатный дополнительный множитель подготовки в песочнице сохраняется отдельно: настройка заменяет только ускорение кнопки.
+
+### Прокрутка настроек
+
+При изменении настройки мода, подтверждении числа через Enter и нажатии кнопки сброса меню сохраняет место прокрутки, пока GP-Next пересоздаёт поля и образцы шрифтов. Если пользователь начинает прокручивать меню или нажимает другой элемент, ожидающее восстановление отменяется. Когда скрытие группы уменьшает длину меню, позиция ограничивается его новым концом.
 
 ### Данные и очистка
 
@@ -173,7 +233,7 @@ python build.py
 Сборщик обновит `scripts/main.mjs`, создаст ZIP мода, ZIP полных исходников и контрольные суммы в `dist/`. При одинаковых исходниках и окружении Python/zlib архивы воспроизводимы. Независимые проверки языка и настроек запускаются в Node.js **20+**:
 
 ```sh
-node --test tests/preferences.test.mjs
+node --test tests/*.test.mjs
 ```
 
 Назначение файлов и инструкция публикации доступны в [английском README](README.md) и [PUBLISHING.md](PUBLISHING.md).

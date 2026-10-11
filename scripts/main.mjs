@@ -1,3 +1,67 @@
+export const FONT_SLOTS = [
+  { key: "fbu", label: "FBU — основной интерфейс", description: "Заголовки, кнопки, цели уровня, настройки, подсказки, магазин, Альманах и счётчики.", sample: "Древний Египет — цели уровня\nСобирайте солнце и защищайте сад.", fallback: "shantell", uuid: "86YVyymTlDWLji7C0CDv7q", fullUuid: "86615cb2-9939-4358-b8e2-ec2d020efeea", file: "FBUSV8C5EI.ttf" },
+  { key: "brianne", label: "Brianne — реплики Дейва", description: "Реплики Безумного Дейва в диалогах и его портретных облачках.", sample: "Эй, сосед! Зомби уже близко.\nПриготовь растения и подкормку!", fallback: "comfortaa", uuid: "aa1w9sPAdB96kCISpAyKzE", fullUuid: "aad70f6c-3c07-41f7-a902-212a40c8acc4", file: "BRIANNETOD.ttf" },
+  { key: "ashley", label: "Ashley Script — реплики Зомбосса", description: "Реплики Зомбосса в диалогах и облачках у его портрета.", sample: "Мой гениальный план почти готов!\nПосмотрим, как вы защитите свой сад.", fallback: "caveat", uuid: "60rUQnbDhIK5115YpEIHas", fullUuid: "60ad4427-6c38-482b-9d75-e58a442076ac", file: "ASHLEYSCRIPTMTSTD.ttf" },
+  { key: "pico", label: "Pico12 — реплики Пенни", description: "Реплики Пенни, машины времени Дейва, в диалогах и её портретных облачках.", sample: "Путешествие во времени продолжается.\nВыберите растения для следующего уровня.", fallback: "comfortaa", uuid: "22yf1a7U5OXom7R1dgKHRK", fullUuid: "22c9fd5a-ed4e-4e5e-89bb-47576028744a", file: "PICO12__.ttf" },
+  { key: "terror", label: "House of Terror — предупреждения", description: "Боевые предупреждения и сообщение о поражении.", sample: "Приближается огромная волна зомби!\nЗомби съели ваши мозги!", fallback: "ruslan", uuid: "d9rgNwXkFEtq1me80kgtn3", fullUuid: "d9ae0370-5e41-44b6-ad66-7bcd2482d9f7", file: "HOUSEOFTERROR.ttf" }
+];
+const FONT_SLOTS_KEY = "local.gardendless.russian-font-fix.font-slots.v1";
+const LEGACY_MAIN_KEY = "local.gardendless.russian-font-fix.font-style.v1";
+const LEGACY_DIALOG_KEY = "local.gardendless.russian-font-fix.dialog-style.v1";
+const own = (object, key) => object != null && Object.hasOwn(object, key);
+export function readFontSlots(options, storage) {
+  const valid = new Set(options.map(option => option.value));
+  let saved, main, dialog;
+  try { storage ??= globalThis.localStorage; saved = JSON.parse(storage?.getItem(FONT_SLOTS_KEY) ?? "null"); } catch (_) {}
+  try { main = storage?.getItem(LEGACY_MAIN_KEY); dialog = storage?.getItem(LEGACY_DIALOG_KEY); } catch (_) {}
+  if (!valid.has(main)) main = undefined;
+  if (dialog === "heading") dialog = main;
+  const result = {};
+  for (const slot of FONT_SLOTS) {
+    const legacy = slot.key === "fbu" || slot.key === "terror" ? main : dialog;
+    result[slot.key] = own(saved, slot.key) && valid.has(saved[slot.key]) ? saved[slot.key] : valid.has(legacy) ? legacy : slot.fallback;
+  }
+  return result;
+}
+export function setFontSlot(resources, key, value, options, storage) {
+  if (!FONT_SLOTS.some(slot => slot.key === key) || !options.some(option => option.value === value)) return false;
+  resources.fontSlots = { ...resources.fontSlots, [key]: value };
+  (storage ?? globalThis.localStorage)?.setItem(FONT_SLOTS_KEY, JSON.stringify(resources.fontSlots));
+  return true;
+}
+export function resetFontSlots(resources, storage) {
+  resources.fontSlots = Object.fromEntries(FONT_SLOTS.map(slot => [slot.key, slot.fallback]));
+  (storage ?? globalThis.localStorage)?.setItem(FONT_SLOTS_KEY, JSON.stringify(resources.fontSlots));
+}
+export function fontSlotChoice(resources, key) {
+  const slot = FONT_SLOTS.find(slot => slot.key === key) ?? FONT_SLOTS[0];
+  return resources.fontSlots?.[slot.key] ?? slot.fallback;
+}
+export function fontSlotFamily(resources, key, options) {
+  if (!resources.custom) return "Arial";
+  const choice = fontSlotChoice(resources, key);
+  return (options.find(option => option.value === choice) ?? options.find(option => option.value === "ruslan"))?.family ?? "Arial";
+}
+export function fontOpticalFactor(resources, key) {
+  if (!resources.custom) return 1;
+  const choice = fontSlotChoice(resources, key);
+  return choice === "ruslan" ? 1.18 : key === "ashley" && choice === "caveat" ? 1.20 : 1;
+}
+export function originalFontSlot(font, node, family = "") {
+  const identities = [font?._uuid, font?.uuid, font?.name, font?._native, font?.nativeUrl, font?._nativeAssetURL, family].filter(value => typeof value === "string");
+  for (const slot of FONT_SLOTS) if (identities.some(value => value.split("@")[0] === slot.uuid || value.toLowerCase().split("@")[0] === slot.fullUuid || value.toLowerCase().includes(slot.file.toLowerCase()))) return slot.key;
+  if (identities.some(value => /HouseofTerror|House.of.Terror/i.test(value))) return "terror";
+  for (let current = node; current; current = current.parent) {
+    const name = current.name ?? "";
+    if (/Zomboss/i.test(name)) return "ashley";
+    if (/Winnie|Penny/i.test(name)) return "pico";
+    if (/CrazyDave|DaveBubble/i.test(name)) return "brianne";
+    if (/^(GamingWarn|GameLoseTip)$/.test(name)) return "terror";
+  }
+  for (let current = node; current; current = current.parent) if (current.name === "NPC_Controller") return "brianne";
+  return "fbu";
+}
+
 export const DEFAULT_PRICES = Object.freeze({snow:1150,toss:950,zap:800,flame:1200,cherry:1500,food:1000});
 const KEY="local.gardendless.russian-font-fix.powerups.v1";
 const INDEX=["flame","snow","toss","zap","cherry"];
@@ -28,18 +92,18 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
   }
   function cancel(p=PowerupFingers?.component) {
     if(!p)return;p.countDown=0;p.mousePushed=false;leases.delete(p);
-     
+
     try{Promise.resolve(p.tryChangingIndex?.(-1,null,true)).catch(e=>log.warn?.(String(e)));}catch(e){log.warn?.(String(e));}
   }
   function syncCoin(value,animate=false) {
     const c=CoinCount?.component;
-     
+
     if(c&&c.isValid!==false) {c._value=value;if(!animate)c.shownValue=value;}
   }
   function revealWallet() {
     const collector=CoinCollecterInGame?.component;
-     
-     
+
+
     if(collector?.node&&collector.isValid!==false)collector.hidden=false;
   }
   function rejected() {
@@ -76,7 +140,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     try{const s=cc.sys?.localStorage,raw=s?.getItem("PvZ2_Settings"),v=raw&&JSON.parse(raw);if(v&&v.AllowCheats!==false)s.setItem("PvZ2_Settings",JSON.stringify({...v,AllowCheats:false}));}catch(e){log.warn?.(`Читы выключены на этот запуск: ${String(e?.message??e)}`);}
   }
   function bindHooks(){
-   
+
   if(SettingWindow&&!patched.get(SettingWindow)?.has("allowCheat")) {
     let keys=patched.get(SettingWindow);if(!keys){keys=new Set();patched.set(SettingWindow,keys);}keys.add("allowCheat");
     const desc=Object.getOwnPropertyDescriptor(SettingWindow,"allowCheat");let value=SettingWindow.allowCheat;
@@ -105,9 +169,9 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
   });
   patch(LnC?.prototype,"onMouseDown",original=>function(event,...args) {
     const power=PowerupFingers?.component;
-     
-     
-     
+
+
+
     if(power?.index===4&&UIInGame?.index===-5&&event?.getButton?.()===0&&this.isInLawn?.()&&level()?.gameStarted) {
       if(locked()&&preferences.mode!=="coins"&&!required(power))return;
       if(preferences.mode==="coins"&&!required(power)) {
@@ -133,24 +197,29 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     if(event&&typeof event==="object")events.add(event);
     if(!debit(preferences.prices.food))return;
     lastFood=time;
-     
+
     this.plantFoodAdd();
   });
-   
-   
+
+
   patch(PlantFoodCount?.prototype,"_show",original=>function(...args) {
     const pos=foodPositions.get(this)??this.addButton?.position?.clone?.();const result=original.apply(this,args);
-    if(preferences.mode==="coins"&&pos&&this.addButton){this.addButton.setPosition(pos);this.addButton.active=true;}
+    if(preferences.mode==="coins"&&pos&&this.addButton){placeFoodPurchase(this.addButton,pos);this.addButton.active=true;}
     return result;
   });
   patch(PlantFoodCount?.prototype,"onLoad",original=>function(...args){const result=original.apply(this,args);if(this.addButton?.position?.clone)foodPositions.set(this,this.addButton.position.clone());return result;});
   }
   bindHooks();
+  const shiftedFoodButtons=new Set();
+  function placeFoodPurchase(button,pos) {
+    const parentScale=Math.max(.001,Math.abs(Number(button.parent?.worldScale?.x)||1));
+    button.setPosition(pos.x-8/parentScale,pos.y,pos.z);shiftedFoodButtons.add(button);
+  }
   function bindExistingCallback(instance,key,button) {
     const original=instance&&originals.get(Object.getPrototypeOf(instance))?.get(key),event=cc.Node?.EventType?.MOUSE_DOWN;
     if(!original||!button?.on||!event||boundCallbacks.has(instance))return;
-     
-     
+
+
     const wrapped=instance[key];button.off(event,original,instance);button.off(event,wrapped,instance);button.on(event,wrapped,instance);boundCallbacks.add(instance);
     undo.push(()=>{if(button.isValid!==false){button.off(event,wrapped,instance);button.on(event,original,instance);}});
   }
@@ -172,8 +241,8 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     const b=badge(parent,key);if(!b)return;
     b.node.active=preferences.mode==="coins";
     const ui=parent.getComponent?.(cc.UITransform),height=ui?.height??146;
-     
-     
+
+
     b.node.setScale(1,1,1);b.node.setPosition(0,-height*.43,0);
     b.label.string=String(preferences.prices[key]);b.opacity.opacity=available?255:120;
     if(preferences.mode==="coins"&&cc.UIOpacity){let s=visuals.get(parent);if(!s){let opacity=parent.getComponent(cc.UIOpacity),owned=!opacity;if(!opacity)opacity=parent.addComponent(cc.UIOpacity);s={opacity,owned,before:opacity.opacity};visuals.set(parent,s);}s.opacity.opacity=available?s.before:155;}
@@ -212,10 +281,10 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
         const available=allowedPower(p)&&balance()>=preferences.prices[key];
         priceBadge(button.node,key,available);if(paid)button.interactable=p.countDown>0?false:available;
       }
-       
-       
+
+
     }
-    if(food?.addButton){bindExistingCallback(food,"onAddMouseDown",food.addButton);remember(food.addButton);if(!foodPositions.has(food)&&food.addButton.position?.clone){const pos=food.addButton.position.clone();if(food.shown&&pos.x<-800&&pos.y>800){pos.x+=1000;pos.y-=1000;}foodPositions.set(food,pos);}if(paid){const pos=foodPositions.get(food);if(pos)food.addButton.setPosition(pos);food.addButton.active=!!food.shown&&!!level()?.showPlantfood&&current()?.features?.feature_plantfood===true;priceBadge(food.addButton,"food",balance()>=preferences.prices.food&&food.plantFoodNum<food.maxCount);}else {const b=badges.get(food.addButton);if(b)b.node.active=false;food.addButton.active=locked()?false:nodes.get(food.addButton).active;}}
+    if(food?.addButton){bindExistingCallback(food,"onAddMouseDown",food.addButton);remember(food.addButton);if(!foodPositions.has(food)&&food.addButton.position?.clone){const pos=food.addButton.position.clone();if(food.shown&&pos.x<-800&&pos.y>800){pos.x+=1000;pos.y-=1000;}foodPositions.set(food,pos);}if(paid){const pos=foodPositions.get(food);if(pos)placeFoodPurchase(food.addButton,pos);food.addButton.active=!!food.shown&&!!level()?.showPlantfood&&current()?.features?.feature_plantfood===true;priceBadge(food.addButton,"food",balance()>=preferences.prices.food&&food.plantFoodNum<food.maxCount);}else {if(shiftedFoodButtons.delete(food.addButton)){const pos=foodPositions.get(food);if(pos)food.addButton.setPosition(pos);}const b=badges.get(food.addButton);if(b)b.node.active=false;food.addButton.active=locked()?false:nodes.get(food.addButton).active;}}
     for(const [parent,b] of badges)if(parent.isValid===false){b.node.destroy?.();badges.delete(parent);}else if(!paid)b.node.active=false;
     for(const [node,s]of feedback)if(node.isValid===false){s.tween?.stop?.();feedback.delete(node);}else if(!s.button.interactable&&s.hover)s.reset();
     for(const [node,s] of visuals)if(node.isValid!==false&&(!paid||required(p)&&node!==food?.addButton))s.opacity.opacity=s.before;
@@ -228,7 +297,7 @@ const n=(v,f=0)=>Number.isFinite(Number(v))?Number(v):f;
 const comp=(node,cc,type)=>{try{return node?.getComponent?.(cc[type]??`cc.${type}`);}catch(_){return null;}};
 const walk=root=>{const result=[];const visit=x=>{if(!x)return;result.push(x);for(const c of x.children??[])visit(c);};visit(root);return result;};
 export function createUiController(cc,native={},log={}) {
-  const saved=new Map(),undo=[],shopGeometry=new WeakMap(),boundZen=new WeakSet(),gardenViews=new WeakMap();let disposed=false;
+  const saved=new Map(),undo=[],shopGeometry=new WeakMap(),commodityGeometry=new WeakMap(),boundZen=new WeakSet(),gardenViews=new WeakMap();let disposed=false;
   function own(node) {
     if(!node)return null;if(saved.has(node))return saved.get(node);
     const ui=comp(node,cc,"UITransform"),w=comp(node,cc,"Widget"),l=comp(node,cc,"Layout");
@@ -241,8 +310,8 @@ export function createUiController(cc,native={},log={}) {
     const garden=zen.currentZen,scalar=zen.zenParent?.parent,canvas=walk(zen.node).find(x=>x.name==="Canvas")??zen.node;
     const screen=rect(canvas),gUi=comp(garden?.node,cc,"UITransform");
     if(!garden?.node||!scalar||!screen||!gUi)return;
-     
-     
+
+
     const points=(garden.slots??[]).map(slot=>slot.node??slot).filter(x=>x?.worldPosition).map(x=>{const p=gUi.convertToNodeSpaceAR(x.worldPosition);return{x:Math.round(p.x*100)/100,y:Math.round(p.y*100)/100};});
     let left,right,bottom,top;
     const lowerMargin=/Beach/i.test(garden.node.name)?120:130;
@@ -250,8 +319,8 @@ export function createUiController(cc,native={},log={}) {
     else {left=garden.SW?.x;right=garden.NE?.x;bottom=garden.SW?.y;top=garden.NE?.y;}
     if(![left,right,bottom,top].every(Number.isFinite)||right<=left||top<=bottom)return;
     const nodes=walk(canvas),hud=nodes.filter(x=>x.activeInHierarchy!==false&&/^(CoinCount|GemCount|SproutCount|PlantCount|ShovelButton|GloveButton|CartButton|returnButton|NextZenButton|QuickShovel|MedalsButton)$/.test(x.name)).map(rect).filter(Boolean);
-     
-     
+
+
     const safe={left:screen.left+12,right:screen.right-12,bottom:screen.bottom+8,top:screen.top-8};
     const gs=garden.node.scale,ss=scalar.parent?.worldScale??{x:1,y:1};
     const sx=Math.abs(gs.x*ss.x),sy=Math.abs(gs.y*ss.y);
@@ -265,14 +334,14 @@ export function createUiController(cc,native={},log={}) {
     const bg=garden.node.getChildByName?.("BG"),bu=comp(bg,cc,"UITransform");
     let placement=null,bestScore=Infinity;
     if(bg&&bu){
-       
-       
+
+
       const beach=/Beach/i.test(garden.node.name),bw=beach?2048:bu.width,bh=beach?1024:bu.height;
       const bx=n(bg.position?.x),by=n(bg.position?.y),bs=bg.scale;
       const back={left:bx-bw*Math.abs(bs.x)/2,right:bx+bw*Math.abs(bs.x)/2,bottom:by-bh*Math.abs(bs.y)/2,top:by+bh*Math.abs(bs.y)/2};
-       
-       
-       
+
+
+
       const coverX=screen.width/((back.right-back.left)*sx),coverY=screen.height/((back.top-back.bottom)*sy),cover=Math.max(coverX,coverY);
       const solve=(zx,zy)=>{
         const xl=Math.max(safe.left-left*sx*zx,screen.right-back.right*sx*zx),xr=Math.min(safe.right-right*sx*zx,screen.left-back.left*sx*zx);
@@ -289,15 +358,15 @@ export function createUiController(cc,native={},log={}) {
       for(let i=0;i<=120&&zoom>=cover;i++){
         const z=zoom-(zoom-cover)*i/120;solve(z,z);
       }
-       
-       
-       
-       
+
+
+
+
       if(!placement&&coverX<=maxX&&coverY<=maxY)for(let ix=0;ix<=16;ix++)for(let iy=0;iy<=16;iy++)solve(maxX-(maxX-coverX)*ix/16,maxY-(maxY-coverY)*iy/16);
     }
     const collides=z=>points.some(p=>{const x=middleX+(p.x-(left+right)/2)*sx*z,y=middleY+(p.y-(bottom+top)/2)*sy*z;return hud.some(h=>x+155*sx*z>h.left-12&&x-155*sx*z<h.right+12&&y+230*sy*z>h.bottom-12&&y-lowerMargin*sy*z<h.top+12);});
-     
-     
+
+
     if(!placement&&collides(zoom)){const largest=zoom;for(let i=1;i<=150;i++){zoom=largest*(1-i/200);if(!collides(zoom))break;}}
     const zoomX=placement?.zx??zoom,zoomY=placement?.zy??zoom;
     own(scalar);free(zen.zenParent);
@@ -328,7 +397,7 @@ export function createUiController(cc,native={},log={}) {
     const tabs=pages.children.filter(x=>/^Page/.test(x.name));
     const width=Math.min(1024,bounds.width),left=(bounds.left+bounds.right-width)/2;
     const top=bounds.top-12,frame=walk(store).find(x=>x.name==="windowCommon"),frameTop=rect(frame)?.top??top-66;
-     
+
     world(pages,left+35,frameTop);
     tabs.forEach((tab,i)=>{const s=free(tab);tab.setPosition?.((i*70+32)/Math.abs(pages.worldScale.x),s.position.y,s.position.z);});
     const right=left+width-36,closeHeight=rect(close)?.height??70;
@@ -339,8 +408,8 @@ export function createUiController(cc,native={},log={}) {
       const s=own(c);c.setScale?.(s.scale.x*.88,s.scale.y*.88,s.scale.z);world(c,right-76-24-(2-i)*118-52,top-17);
       const index=store.getSiblingIndex?.()+1+i;if(Number.isInteger(index))c.setSiblingIndex?.(index);
     }
-     
-     
+
+
     const scroll=walk(store).find(x=>x.name==="ScrollView"),view=scroll&&walk(scroll).find(x=>x.name==="view"),cards=view&&walk(view).find(x=>x.name==="cards");
     if(!scroll||!view||!cards)return;
     const sr=rect(scroll);if(!sr)return;
@@ -355,8 +424,8 @@ export function createUiController(cc,native={},log={}) {
       free(view);const viewUi=comp(view,cc,"UITransform");viewUi?.setContentSize?.(scrollUi.width,scrollUi.height);view.setPosition?.(0,0,n(view.position?.z));
       free(cards);const contentUi=comp(cards,cc,"UITransform");contentUi?.setContentSize?.(contentUi.width,viewUi.height);
       factor=Math.min(1,viewUi.height/(c.size?.[1]??1326.34));
-       
-       
+
+
       cards.setScale?.(c.scale);if(c.layout){c.layout.affectedByScale=true;c.layout.enabled=true;}
       cards.setPosition?.(-viewUi.width/2+offset*factor/(previous?.factor??factor),viewUi.height/2,n(c.position.z));
       shopGeometry.set(scroll,{key,factor,bottom});
@@ -374,20 +443,74 @@ export function createUiController(cc,native={},log={}) {
       const width=Math.min(1020,goRect?(goRect.left-row.worldPosition.x-24)/rowScale:1020);
       const numberWidth=Math.max(150,n(comp(middle,cc,"UITransform")?.width)*1.1),iconWidth=n(comp(icon,cc,"UITransform")?.width,88.3)*1.1;
       const tail=45,gap=12,caption=Math.max(220,width-numberWidth-iconWidth-tail-gap*3);
-      for(const [node,w] of [[left,caption],[right,tail]]){const label=comp(node,cc,"Label");own(node);if(label)label.__rffArcadeReward={width:w,height:110};}
+      for(const [node,w] of [[left,caption],[right,tail]]){const label=comp(node,cc,"Label");own(node);if(label)label.__rffArcadeReward={width:w,height:node===left?150:110,maxLines:node===left?2:1};}
       comp(row,cc,"UITransform")?.setContentSize?.(width,140);
-       
-       
+
+
       let x=0;for(const [node,w] of [[left,caption],[middle,numberWidth],[icon,iconWidth],[right,tail]]){own(node);node.setPosition?.(x+w/2,0,n(node.position?.z));x+=w+gap;}
     }
+  }
+  function insetWidget(node,edges,sign=1,amount=8) {
+    const widget=comp(node,cc,'Widget');if(!widget?.enabled)return;
+    const state=own(node),target=widget.target??node.parent,targetUi=comp(target,cc,'UITransform'),targetScale=target?.worldScale??{x:1,y:1};
+    for(const edge of edges) {
+      const suffix=edge[0].toUpperCase()+edge.slice(1);if(!widget['isAlign'+suffix])continue;
+      const horizontal=edge==='left'||edge==='right';
+      const unit=Math.abs(targetScale[horizontal?'x':'y'])*(widget['isAbsolute'+suffix]?1:n(targetUi?.[horizontal?'width':'height']));
+      if(!(unit>0))continue;
+      state.widgetInsets??={};if(state.widgetInsets[edge]===undefined)state.widgetInsets[edge]=widget[edge];
+      widget[edge]=state.widgetInsets[edge]+amount*sign/unit;
+    }
+    widget.updateAlignment?.();
+  }
+  function gameButtonInsets(nodes) {
+    const current=native.UIInGame?.component;
+    const pause=current?.pauseButton?.node??nodes.find(node=>node.name==='pause'&&node.parent?.name==='Canvas');
+    const speed=current?.s2xButton?.node??nodes.find(node=>node.name==='2x'&&node.parent?.name==='UIInGameUpper');
+    for(const node of new Set([pause,speed])) {
+      if(!node||!nodes.includes(node))continue;
+      insetWidget(node,['right','top']);
+    }
+    const shovelControl=native.ShovelUIController?.shovelUI;
+    const shovel=shovelControl?.node??nodes.find(node=>node.name==='Shovel'&&node.parent?.name==='UIInGame');
+    if(shovel&&nodes.includes(shovel)&&shovel.activeInHierarchy!==false&&shovelControl?.gameStarted!==false&&Math.abs(shovel.worldPosition?.x??0)<2000) {
+      insetWidget(shovel,['right'],1,12);
+      const key=shovelControl?.KeyTip?.node,offset=shovelControl?.keyOffset;
+      if(key&&nodes.includes(key)&&offset){own(key).preserveNativeScale=true;key.setWorldPosition?.(shovel.worldPosition.x+offset.x,shovel.worldPosition.y+offset.y,shovel.worldPosition.z+offset.z);}
+    }
+  }
+  function levelCaption(nodes,canvas) {
+    const labelNode=nodes.find(node=>node.name==='levelName'&&node.parent?.name==='UIInGameUpper'),label=comp(labelNode,cc,'Label'),screen=canvas&&rect(canvas);
+    if(!label)return;
+    const reset=()=>{delete label.__rffLevelCaption;const state=saved.get(labelNode);if(state?.levelCaptionMoved){labelNode.setPosition(state.position);if(state.widget)state.widget.enabled=state.widgetEnabled;state.levelCaptionMoved=false;}};
+    if(!screen||!/[А-Яа-яЁё]/.test(label.string)){reset();return;}
+    const state=own(labelNode),centerY=labelNode.worldPosition.y;
+    const sameRow=r=>r&&centerY>=r.bottom-25&&centerY<=r.top+25;
+    const power=native.PowerupFingers?.component;
+    const buttons=power&&power.node?.activeInHierarchy!==false?['fireButton','snowButton','tossButton','zapButton','cherryButton'].map(key=>power[key]?.node).filter(Boolean):nodes.filter(node=>/^Powerup_(Snow|Toss|Zap|Flame|Cherry)$/.test(node.name));
+    const leftItems=buttons.filter(node=>node.activeInHierarchy!==false).map(node=>{const r=rect(node);if(!r)return null;const s=own(node),xs=Math.abs(node.parent?.worldScale?.x??1),ui=comp(node,cc,'UITransform');s.captionScaleX=Math.max(s.captionScaleX??Math.abs(s.scale.x),Math.abs(node.scale.x));const width=n(ui?.width)*s.captionScaleX*xs;return {...r,left:node.worldPosition.x-width/2,right:node.worldPosition.x+width/2};}).filter(sameRow);
+    const rightItems=nodes.filter(node=>node.activeInHierarchy!==false&&node.parent===labelNode.parent&&/^(levelProgress|zombossProgress|beghouledProgress|fightaloneProgress|CountDownProgress)$/.test(node.name)).map(rect).filter(sameRow);
+    if(!leftItems.length||!rightItems.length){reset();return;}
+    const left=Math.max(screen.left,...leftItems.map(r=>r.right))+16,right=Math.min(screen.right,...rightItems.map(r=>r.left))-16;
+    if(right-left<80){reset();return;}
+    const anchor=comp(labelNode,cc,'UITransform')?.anchorPoint?.x??.5,scaleX=Math.abs(labelNode.worldScale.x),width=(right-left)/scaleX;
+    world(labelNode,left+(right-left)*anchor,centerY);state.levelCaptionMoved=true;
+    label.__rffLevelCaption={width,height:state.size?.[1]??106.69};
   }
   function scan() {
     if(disposed)return;
     try {
       const latest=native.resolve?.();if(latest)Object.assign(native,latest);bindZen();
       const scene=cc.director?.getScene?.(),nodes=walk(scene),canvas=nodes.find(x=>x.name==="Canvas");
+      gameButtonInsets(nodes);
+      levelCaption(nodes,canvas);
       if(/store/i.test(scene?.name??"")||nodes.some(x=>x.name==="Store"))shop(nodes,canvas);
       arcade(nodes);
+      const z=native.Zen&&scene?.getComponentsInChildren?.(native.Zen)?.[0];
+      if(z||/zenGardenScene/i.test(scene?.name??'')) {
+        for(const node of nodes.filter(x=>/^(CoinCount|GemCount|SproutCount|PlantCount|returnButton)$/.test(x.name)||x.name==='Buttons'&&x.parent?.name==='UI'))insetWidget(node,['left','right','top']);
+        const medal=nodes.find(x=>x.name==='MedalsButton');if(medal){insetWidget(medal,['left'],-1);insetWidget(medal,['right','top']);}
+      }
       for(const caption of nodes.filter(x=>x.name==="LevelInGameName")) {
         const label=comp(caption,cc,"Label");if(!label||!/[А-Яа-яЁё]/.test(label.string))continue;
         const card=caption.parent;if(card?.name!=="Level")continue;
@@ -400,8 +523,8 @@ export function createUiController(cc,native={},log={}) {
         const s=own(root);root.setPosition?.(s.position.x,s.position.y+8,s.position.z);
         const animal=walk(root).find(x=>x.name==="icon_L");if(animal){const a=own(animal);animal.setScale?.(a.scale.x*.85,a.scale.y*.85,a.scale.z);animal.setPosition?.(a.position.x,a.position.y-2,a.position.z);}
       }
-       
-       
+
+
       const almanac=nodes.find(x=>x.name==="Almanac"),exit=almanac&&walk(almanac).find(x=>x.name==="almanacButton"),medals=nodes.find(x=>x.name==="MedalsButton");
       if(exit&&medals){const e=rect(exit),m=own(medals),art=walk(medals).find(x=>x.name==="medal"),a=art&&rect(art),r=rect(medals);if(e&&r){const artworkWidth=Math.max(r.width,a?.width??0);world(medals,e.left-16-artworkWidth/2,(e.bottom+e.top)/2);}}
       const shovel=nodes.find(x=>x.name==="ShovelButton"),toggle=nodes.find(x=>x.name==="QuickShovel");
@@ -412,11 +535,10 @@ export function createUiController(cc,native={},log={}) {
         const russian=!native.MultiLanguage||(Number.isInteger(native.LanguageEnum?.RU)&&native.MultiLanguage.currentLanguage===native.LanguageEnum.RU);
         if(label&&label.string==="Fast Shovel"&&russian)label.string="Быстрая лопата";
       }
-      const z=native.Zen&&scene?.getComponentsInChildren?.(native.Zen)?.[0];
       if(z||/zenGardenScene/i.test(scene?.name??""))for(const count of nodes.filter(x=>/^(CoinCount|GemCount|SproutCount|PlantCount)$/.test(x.name))){
         const s=own(count);
-         
-         
+
+
         if(s.widget?.isAlignBottom){if(s.widgetBottom===undefined)s.widgetBottom=s.widget.bottom;s.widget.bottom=s.widgetBottom+12/Math.abs(count.parent.worldScale.y);s.widget.updateAlignment?.();}
         else count.setPosition(count.position.x,s.position.y+12/Math.abs(count.parent.worldScale.y),count.position.z);
       }
@@ -424,31 +546,50 @@ export function createUiController(cc,native={},log={}) {
       for(const c of native.Commodity?scene?.getComponentsInChildren?.(native.Commodity)??[]:[]) {
         const label=c.buyButtonLabel,black=c.buyButtonSprite?.node;
         if(!label?.node||!black)continue;
+        const layout=comp(black,cc,"Layout"),card=rect(c.node),buttonUi=comp(black,cc,"UITransform");
+        let geometry=commodityGeometry.get(black);
+        const soldout=c.soldout===true;
+        if(card&&buttonUi&&layout&&(layout.resizeMode===1||geometry)) {
+          if(!geometry){const state=own(black);geometry={state,fixed:false};commodityGeometry.set(black,geometry);}
+          const icon=label.node.getChildByName?.("Icon");
+          if(soldout) {
+            if(!geometry.fixed){geometry.size=[buttonUi.width,buttonUi.height];geometry.position=black.position.clone();}
+            geometry.fixed=true;layout.enabled=false;
+            buttonUi.setContentSize(card.width*.65/Math.abs(black.worldScale.x),geometry.size[1]);
+            world(black,(card.left+card.right)/2,black.worldPosition.y);
+            if(icon){const state=own(icon);if(state.restoreActive===undefined){state.active=icon.active;state.restoreActive=true;}icon.active=false;}
+          } else if(geometry.fixed) {
+            geometry.fixed=false;buttonUi.setContentSize(...geometry.size);black.setPosition(geometry.position);layout.enabled=geometry.state.layoutEnabled;
+            const caption=own(label.node);if(caption.size)comp(label.node,cc,"UITransform")?.setContentSize(...caption.size);label.node.setPosition(caption.position);
+            if(icon){const state=saved.get(icon);if(state?.restoreActive)icon.active=state.active;}
+          }
+        }
         const r=rect(black),s=label.node.worldScale;if(!r||!s)continue;
-         
+
         free(label.node);world(label.node,(r.left+r.right)/2,(r.bottom+r.top)/2);
         label.horizontalAlign=1;
         label.__rffStorePrice={width:r.width*.82/Math.abs(s.x),height:r.height*.74/Math.abs(s.y)};
       }
     } catch(error) {log.warn?.(`Расположение интерфейса: ${String(error?.message??error)}`);}
   }
-  return {scan,dispose(){if(disposed)return;disposed=true;for(const restore of undo.reverse())restore();for(const [node,s] of saved)if(node.isValid!==false){const l=comp(node,cc,"Label");if(l){delete l.__rffStorePrice;delete l.__rffArcadeReward;delete l.__rffFanmadeTitle;}if(s.size)comp(node,cc,"UITransform")?.setContentSize?.(...s.size);node.setScale?.(s.scale);node.setPosition?.(s.position);if(s.widget){if(s.widgetBottom!==undefined){s.widget.bottom=s.widgetBottom;s.widget.updateAlignment?.();}s.widget.enabled=s.widgetEnabled;}if(s.layout){s.layout.enabled=s.layoutEnabled;s.layout.affectedByScale=s.layoutAffectedByScale;}if(s.sibling!==undefined)node.setSiblingIndex?.(s.sibling);}saved.clear();}};
+  return {scan,dispose(){if(disposed)return;disposed=true;for(const restore of undo.reverse())restore();for(const [node,s] of saved)if(node.isValid!==false){const l=comp(node,cc,"Label");if(l){delete l.__rffStorePrice;delete l.__rffArcadeReward;delete l.__rffFanmadeTitle;delete l.__rffLevelCaption;}if(s.size)comp(node,cc,"UITransform")?.setContentSize?.(...s.size);if(!s.preserveNativeScale)node.setScale?.(s.scale);node.setPosition?.(s.position);if(s.restoreActive)node.active=s.active;if(s.widget){if(s.widgetBottom!==undefined)s.widget.bottom=s.widgetBottom;if(s.widgetInsets)Object.assign(s.widget,s.widgetInsets);s.widget.enabled=s.widgetEnabled;if(s.widgetBottom!==undefined||s.widgetInsets)s.widget.updateAlignment?.();}if(s.layout){s.layout.enabled=s.layoutEnabled;s.layout.affectedByScale=s.layoutAffectedByScale;}if(s.sibling!==undefined)node.setSiblingIndex?.(s.sibling);}saved.clear();}};
 }
 
-export function createFontPreview(cc,resources={},log={}) {
+export function createFontPreview(cc,resources={},log={},config={}) {
   const doc=globalThis.document;
   if(!doc?.createElement)return {start(){},dispose(){}};
   let root,canvas,renderRoot,camera,texture,labels=[],signature='',pending=false,disposed=false,warned=false,observer,started=false;
-  const width=860,height=580,layer=1<<24;
+  const slots=config.slots??[],options=config.options??[];
+  const width=860,height=slots.length*196,layer=1<<24;
   const buttonSpacing=new Map();
   function attach(){
     if(disposed)return;
     for(const button of doc.querySelectorAll('button'))if(['Вернуть рекомендуемое оформление','Вернуть стандартный размер','Вернуть цены по умолчанию'].includes(button.getAttribute('aria-label')??button.textContent.trim())){if(!buttonSpacing.has(button))buttonSpacing.set(button,[button.style.marginTop,button.style.marginBottom]);button.style.marginTop='16px';button.style.marginBottom='6px';}
-    const select=doc.querySelector('select[aria-label="Основной шрифт"]');if(!select?.isConnected||root?.isConnected)return;
+    const select=[...doc.querySelectorAll('select')].find(node=>node.getAttribute('aria-label')===slots[0]?.label);if(!select?.isConnected||root?.isConnected||!slots.length)return;
     root=doc.createElement('div');root.setAttribute('data-rff-font-preview','');root.style.cssText='margin-top:14px;width:100%;border-radius:12px;overflow:hidden;background:#102b25;border:1px solid #476158';
     const title=doc.createElement('p');title.textContent='Образцы выбранных шрифтов';title.style.cssText='margin:10px 14px;color:#fff;font:600 14px system-ui';
     canvas=doc.createElement('canvas');canvas.width=width;canvas.height=height;canvas.style.cssText='display:block;width:100%;height:auto;background:#102b25';
-    const note=doc.createElement('p');note.textContent='Заголовок, описание и диалог рисует игровой движок. Выбор применяется сразу.';note.style.cssText='margin:10px 14px;color:#c9d6d2;font:12px system-ui';root.append(title,canvas,note);
+    const note=doc.createElement('p');note.textContent='Пять образцов соответствуют пяти исходным шрифтам игры. Их рисует игровой движок. Выбор применяется сразу.';note.style.cssText='margin:10px 14px;color:#c9d6d2;font:12px system-ui';root.append(title,canvas,note);
     const row=select.closest('.gp-setting-row,.gp-form-row,.gp-field-row')??select.parentElement;row?.parentElement?.appendChild(root);signature='';
   }
   function destroyRender(){renderRoot?.destroy?.();texture?.destroy?.();renderRoot=null;camera=null;texture=null;labels=[];signature='';pending=false;}
@@ -461,18 +602,15 @@ export function createFontPreview(cc,resources={},log={}) {
       const node=new cc.Node('FontSample');node.parent=renderRoot;node.layer=layer;node.__rffOwnedFont=true;node.setPosition(0,y,0);node.addComponent(cc.UITransform).setContentSize(width-64,rows);
       const l=node.addComponent(cc.Label);l.string=text;l.useSystemFont=true;l.fontSize=size;l.lineHeight=size*1.28;l.overflow=1;l.enableWrapText=false;l.horizontalAlign=0;l.verticalAlign=1;l.enableOutline=true;l.outlineWidth=3;l.outlineColor=new cc.Color(0,0,0,255);l.color=color;labels.push({label:l,role,base:size,height:rows});
     }
-    label('Основной шрифт',256,30,66,'caption');label('Древний Египет\nТёмные века',160,52,164,'heading',new cc.Color(255,221,92,255));
-    label('Описания и советы',55,30,66,'caption');label('Собирайте солнце и защищайте сад.\nПосадите подсолнухи в несколько рядов.',-48,42,164,'body');
-    label('Реплики в диалогах',-147,30,66,'caption');label('Эй, сосед! Зомби уже близко.\nПриготовь растения и подкормку!',-225,42,124,'dialog');
+    slots.forEach((slot,index)=>{const top=height/2-index*196;label(slot.label,top-35,28,64,'caption');label(slot.sample,top-122,42,130,slot.key,index===0||slot.key==='terror'?new cc.Color(255,221,92,255):undefined);});
   }
   function prepare(){
     if(disposed)return;attach();const visible=canvas?.isConnected&&canvas.getClientRects().length,scene=cc.director?.getScene?.();if(!visible||!scene){if(camera)camera.enabled=false;return;}
     try{
       if(!renderRoot||renderRoot.isValid===false||renderRoot.parent!==scene)makeRenderer(scene);
-      const key=JSON.stringify([resources.custom,resources.theme,resources.bodyTheme,resources.dialogTheme,resources.percent]);if(key===signature)return;signature=key;
-      const choices={heading:resources.theme??'ruslan',body:resources.bodyTheme??'pangolin',dialog:resources.dialogTheme??'shantell'},families={classic:'GardendlessRussianBalsamiqBold',bubbles:'GardendlessRussianRubikBubbles',ruslan:'GardendlessRussianRuslan'};
+      const key=JSON.stringify([resources.custom,resources.fontSlots,resources.percent]);if(key===signature)return;signature=key;
       const measure=doc.createElement('canvas').getContext('2d');
-      for(const sample of labels){let choice=choices[sample.role];if(choice==='heading')choice=choices.heading;const l=sample.label;l.fontFamily=sample.role==='caption'?'Arial':resources.custom?(choice==='classic'&&sample.role!=='heading'?'GardendlessRussianBalsamiqRegular':families[choice]??'GardendlessRussian'+choice):'Arial';measure.font=`100px "${l.fontFamily}"`;const lines=l.string.split('\n'),units=Math.max(...lines.map(text=>measure.measureText(text).width/100));l.fontSize=Math.floor(Math.min(sample.base*(sample.role==='caption'?1:(resources.percent??68)/68),(width-76)/(units*1.04),(sample.height-10)/(1.75+(lines.length-1)*1.28)));l.lineHeight=l.fontSize*1.28;l.updateRenderData?.(true);}
+      for(const sample of labels){const slot=slots.find(item=>item.key===sample.role),choice=resources.fontSlots?.[slot?.key]??slot?.fallback,l=sample.label;l.fontFamily=sample.role==='caption'||!resources.custom?'Arial':options.find(option=>option.value===choice)?.family??'Arial';measure.font=`100px "${l.fontFamily}"`;const lines=l.string.split('\n'),units=Math.max(...lines.map(text=>measure.measureText(text).width/100)),smallScript=resources.custom&&sample.role==='ashley'&&choice==='caveat',ratio=smallScript?1.17:1.28,factor=smallScript?1.20:1;l.fontSize=Math.floor(Math.min(sample.base*(sample.role==='caption'?1:(resources.percent??68)/68)*factor,(width-76)/(units*1.04),(sample.height-10)/((smallScript?1.35:1.75)+(lines.length-1)*ratio)));l.lineHeight=l.fontSize*ratio;l.updateRenderData?.(true);}
       camera.enabled=true;pending=true;
     }catch(error){if(!warned){warned=true;log.warn?.('Образцы шрифтов: '+String(error?.message??error));}}
   }
@@ -496,8 +634,8 @@ export function createPlanningController(native,log={}) {
     if(owner!==phaseOwner||active!==phaseActive){phaseOwner=owner;phaseActive=active;phaseToken=active?{owner}:null;}
     return phaseToken;
   }
-   
-   
+
+
   const preparing=token=>!!token&&token===phase();
   function patch(proto,key,make){
     const original=proto?.[key];if(typeof original!=="function")return;
@@ -521,16 +659,16 @@ export function createPlanningController(native,log={}) {
       patch(cell,"PlaceUIPlant",original=>function(...args){
         const owner=phase(),card=this.UIInGame?.currentCF??native.UIInGame?.component?.currentCF;
         if(!preparing(owner)||!card?.BOOSTED||!(card.PF?.BOOST>0)||typeof this.scheduleOnce!=="function")return original.apply(this,args);
-         
-         
+
+
         const own=Object.getOwnPropertyDescriptor(this,"scheduleOnce"),schedule=this.scheduleOnce,ticket={owner,card},cell=this;
         this.scheduleOnce=function(callback,...rest){return schedule.call(this,function(...a){const previous=placements.get(cell);placements.set(cell,ticket);try{return callback.apply(this,a);}finally{if(previous)placements.set(cell,previous);else placements.delete(cell);}},...rest);};
         try{return original.apply(this,args);}finally{if(own)Object.defineProperty(this,"scheduleOnce",own);else delete this.scheduleOnce;}
       });
       patch(cell,"SpawnPlantByType",original=>function(...args){
-         
-         
-         
+
+
+
         const owner=phase(),ticket=placements.get(this),card=ticket?.card;
         const placement=preparing(owner)&&ticket?.owner===owner&&!!card?.BOOSTED&&card.PF?.BOOST>0&&args[1]===false&&args[2]===true&&args[3]===true&&args[4]===true&&args[6]===true;
         const transfer=preparing(owner)&&args[1]===true&&args[2]===true&&args[3]===false&&args[4]===true&&args[5]===undefined?(transfers.get(this)??[]).find(t=>!t.used&&t.owner===owner&&t.type===args[0]):null;
@@ -555,8 +693,8 @@ export function createPlanningController(native,log={}) {
     const imitater=native.ImitaterPlant?.prototype;
     if(imitater&&!bound.has(imitater)){
       bound.add(imitater);
-       
-       
+
+
       patch(imitater,"food",original=>function(...args){
         const owner=pending.get(this),previous=imitated.get(this);pending.delete(this);imitated.delete(this);
         const result=original.apply(this,args);
@@ -577,7 +715,402 @@ export function createPlanningController(native,log={}) {
   return {scan(){if(disposed)return;phase();bind();for(const [plant,s] of wrapped)if(plant.isValid===false||plant.node?.isValid===false||!plant.node){wrapped.delete(plant);}},get enabled(){return enabled;},setEnabled(value){enabled=!!value;phase();try{globalThis.localStorage?.setItem(PLANNING_KEY,String(enabled));}catch(error){log.warn?.(`Настройка планирования не сохранена: ${String(error)}`);}},dispose(){if(disposed)return;disposed=true;for(const [plant,s]of wrapped)if(plant.throwChildren===s.replacement){if(s.own)Object.defineProperty(plant,"throwChildren",s.own);else delete plant.throwChildren;}wrapped.clear();for(const restore of undo.reverse())restore();}};
 }
 
-const VERSION = "1.0.1";
+const SPEED_KEY = "local.gardendless.russian-font-fix.game-speed.v1";
+function validMultiplier(value) {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  const result = Number(typeof value === "string" ? value.trim().replace(",", ".") : value);
+  return Number.isFinite(result) && result >= 1 && result <= 10 ? Math.round(result * 10) / 10 : null;
+}
+export function createSpeedControlView(controller) {
+  const doc = globalThis.document, fields = new Map();
+  let observer, started = false, disposed = false;
+  function removeListeners(field, saved) {
+    saved.slider.removeEventListener("input", saved.change);
+    field.removeEventListener("change", saved.commit, true);
+    field.removeEventListener("keydown", saved.keydown);
+  }
+  function attach() {
+    if (disposed) return;
+    for (const [field, saved] of fields) if (!field.isConnected) { removeListeners(field, saved); fields.delete(field); }
+    if (!controller.enabled) return;
+    for (const field of doc.querySelectorAll('input[type="number"][aria-label="Множитель ускорения, ×"]')) {
+      if (fields.has(field) || field.min !== "1" || field.max !== "10" || field.step !== "0.1") continue;
+      const parent = field.parentElement, next = field.nextSibling, style = field.getAttribute("style"), parentStyle = parent.getAttribute("style"), focused = doc.activeElement === field, row = doc.createElement("div"), slider = doc.createElement("input"), originalType = field.type;
+      field.type = "text";
+      parent.style.display = "flex"; parent.style.flexDirection = "column"; parent.style.alignItems = "stretch"; parent.style.gap = "8px";
+      row.setAttribute("data-rff-speed-control", "");
+      row.style.cssText = "display:flex;align-items:center;gap:12px;min-width:0;width:100%";
+      slider.type = "range"; slider.min = "1"; slider.max = "10"; slider.step = "0.1"; slider.value = String(controller.multiplier);
+      slider.setAttribute("aria-label", "Множитель ускорения — ползунок");
+      slider.style.cssText = "flex:1 1 100px;min-width:80px;max-width:100%;cursor:pointer;accent-color:#69b6ff";
+      field.style.width = "88px"; field.style.minWidth = "70px"; field.style.flex = "0 0 88px"; field.style.boxSizing = "border-box";
+      const change = () => {
+        if (disposed || !controller.enabled || !field.isConnected || field.disabled || field.closest("[inert]")) return;
+        if (controller.setMultiplier(slider.value)) field.value = controller.multiplier.toFixed(1);
+      };
+      const commit = () => {
+        const value = validMultiplier(field.value);
+        field.value = String(value ?? controller.multiplier);
+      };
+      const keydown = event => {
+        if (disposed || event.isComposing || field.disabled || field.closest("[inert]")) return;
+        if (event.key === "Enter") {
+          event.preventDefault(); event.stopPropagation();
+          field.dispatchEvent(new Event("change", { bubbles: true }));
+          return;
+        }
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        const separator = event.code === "Period" && /^[юЮ]$/.test(event.key) ? "." : event.code === "Comma" && /^[бБ]$/.test(event.key) ? "," : event.code === "NumpadDecimal" && event.key !== "Delete" ? "." : null;
+        if (separator) {
+          event.preventDefault(); event.stopPropagation();
+          field.setRangeText(separator, field.selectionStart ?? field.value.length, field.selectionEnd ?? field.value.length, "end");
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      };
+      slider.addEventListener("input", change);
+      field.addEventListener("change", commit, true);
+      field.addEventListener("keydown", keydown);
+      parent.insertBefore(row, field); row.append(slider, field);
+      if (focused) field.focus({ preventScroll: true });
+      fields.set(field, { parent, next, style, parentStyle, row, slider, change, commit, keydown, originalType });
+    }
+  }
+  return {
+    start() {
+      if (started || disposed || !doc?.body) return;
+      started = true;
+      if (globalThis.MutationObserver) { observer = new MutationObserver(attach); observer.observe(doc.body, { childList: true, subtree: true }); }
+      attach();
+    },
+    dispose() {
+      if (disposed) return; disposed = true; observer?.disconnect();
+      for (const [field, saved] of fields) {
+        removeListeners(field, saved);
+        const focused = doc.activeElement === field;
+        if (field.parentElement === saved.row) saved.parent.insertBefore(field, saved.next?.parentElement === saved.parent ? saved.next : saved.row.parentElement === saved.parent ? saved.row : null);
+        if (saved.style === null) field.removeAttribute("style"); else field.setAttribute("style", saved.style);
+        if (saved.parentStyle === null) saved.parent.removeAttribute("style"); else saved.parent.setAttribute("style", saved.parentStyle);
+        saved.row.remove();
+        field.type = saved.originalType;
+        if (focused && field.isConnected) field.focus({ preventScroll: true });
+      }
+      fields.clear();
+    }
+  };
+}
+export function readSpeedPreferences(storage) {
+  try {
+    const saved = JSON.parse((storage ?? globalThis.localStorage)?.getItem(SPEED_KEY) ?? "null");
+    return { enabled: saved?.enabled === true, multiplier: validMultiplier(saved?.multiplier) ?? 2 };
+  } catch (_) { return { enabled: false, multiplier: 2 }; }
+}
+export function createSpeedController(cc, native, log = {}, storage) {
+  let preferences = readSpeedPreferences(storage), disposed = false, owned = null, warned = false;
+  const bound = new WeakSet(), undo = [];
+  const clock = cc.director;
+  function save() {
+    try { (storage ?? globalThis.localStorage)?.setItem(SPEED_KEY, JSON.stringify(preferences)); }
+    catch (_) { log.warn?.("Ускорение изменено на текущий запуск; сохранить настройку не удалось."); }
+  }
+  function active(ui) {
+    return !!ui && native.UIInGame?.component === ui && ui.node?.isValid !== false && ui.node?.activeInHierarchy !== false;
+  }
+  function release() {
+    if (owned && clock.gameSpeed === owned.applied) {
+      const ui = owned.ui;
+      const reset = !active(ui) || ui.sceneEnabled === false || ui.exitNextTick || ui.restartNextTick || ui._exitDealt || native.LevelPlay?.component?.gameLost;
+      const factor = Number(native.getGamingSpeed?.()), phase = native.LevelPlay?.sandBoxModeOn && !native.LevelPlay.gameStarted ? 4 : 1;
+      clock.gameSpeed = reset ? 1 : ui.paused || native.getSuperSlowed?.() === true ? 0 : factor > 0 && Number.isFinite(factor) ? factor * phase : owned.original;
+    }
+    owned = null;
+  }
+  function apply(ui) {
+    if (disposed || !preferences.enabled || !active(ui)) return;
+    const factor = Number(native.getGamingSpeed?.()), raw = Number(clock.gameSpeed);
+    if (!(factor > 1) || !Number.isFinite(factor) || !(raw > 0) || !Number.isFinite(raw) || ui.paused || ui.sceneEnabled === false || ui.exitNextTick || ui.restartNextTick || ui._exitDealt || native.LevelPlay?.component?.gameLost || native.getSuperSlowed?.() === true) { owned = null; return; }
+    const phase = native.LevelPlay?.sandBoxModeOn && !native.LevelPlay.gameStarted ? 4 : 1;
+    if (Math.abs(raw - factor * phase) > .000001) { owned = null; return; }
+    const applied = preferences.multiplier * phase;
+    clock.gameSpeed = applied;
+    owned = { ui, original: raw, applied };
+  }
+  function bind() {
+    Object.assign(native, native.resolve?.() ?? {});
+    const proto = native.UIInGame?.prototype;
+    if (!proto || bound.has(proto) || typeof proto.update !== "function") return;
+    const original = proto.update, descriptor = Object.getOwnPropertyDescriptor(proto, "update");
+    if (descriptor && descriptor.writable === false && !descriptor.set) {
+      if (!warned) { warned = true; log.warn?.("Настройка ускорения недоступна: игровой обработчик защищён от изменения."); }
+      return;
+    }
+    const replacement = function(...args) {
+      const result = original.apply(this, args);
+      if (!disposed) { owned = null; apply(this); }
+      return result;
+    };
+    try { proto.update = replacement; }
+    catch (_) {
+      if (!warned) { warned = true; log.warn?.("Настройка ускорения недоступна: игровой обработчик защищён от изменения."); }
+      return;
+    }
+    bound.add(proto);
+    undo.push(() => { if (proto.update === replacement) { if (descriptor) Object.defineProperty(proto, "update", descriptor); else delete proto.update; } });
+  }
+  bind();
+  return {
+    get enabled() { return preferences.enabled; },
+    get multiplier() { return preferences.multiplier; },
+    setEnabled(value) {
+      if (disposed || typeof value !== "boolean") return false;
+      release(); preferences = { ...preferences, enabled: value }; save(); bind(); apply(native.UIInGame?.component); return true;
+    },
+    setMultiplier(value) {
+      const multiplier = validMultiplier(value);
+      if (disposed || multiplier === null) return false;
+      release(); preferences = { ...preferences, multiplier }; save(); bind(); apply(native.UIInGame?.component); return true;
+    },
+    scan() { if (!disposed) bind(); },
+    dispose() { if (disposed) return; disposed = true; release(); for (const restore of undo.reverse()) restore(); }
+  };
+}
+
+export function createSettingsControlView(doc = globalThis.document, frame = globalThis) {
+  let disposed = false, revision = 0, inFlight = 0;
+  const pending = new Set();
+  let submenuStyle, submenuObserver;
+  const submenuRows = new Set();
+  const submenuLabels = new Set(["Автоподбор прочего дропа", "Автоподбор солнца", "Автоподбор листиков подкормки"]);
+  function decorateSubmenu() {
+    if (disposed || !doc?.querySelectorAll) return;
+    for(const row of submenuRows)if(!row.isConnected){row.removeAttribute('data-rff-auto-collect-item');submenuRows.delete(row);}
+    for (const control of doc.querySelectorAll('button[aria-label]')) if (submenuLabels.has(control.getAttribute('aria-label'))) {
+      const row=control.closest?.('.gp-toggle-wrap');
+      if(row){row.setAttribute('data-rff-auto-collect-item', '');submenuRows.add(row);}
+    }
+  }
+  if (doc?.head?.appendChild && frame.MutationObserver) {
+    submenuStyle=doc.createElement('style');
+    submenuStyle.textContent='[data-rff-auto-collect-item]{margin-left:16px;padding-left:14px;border-left:2px solid var(--gp-border,#476158)}';
+    doc.head.appendChild(submenuStyle);
+    submenuObserver=new frame.MutationObserver(decorateSubmenu);
+    submenuObserver.observe(doc.body,{childList:true,subtree:true});
+    decorateSubmenu();
+  }
+  const cancel = () => {
+    revision++;
+    for (const id of pending) frame.cancelAnimationFrame?.(id);
+    pending.clear();
+  };
+  const interrupted = event => {
+    if ((pending.size || inFlight) && event.isTrusted) cancel();
+  };
+  for (const type of ["wheel", "touchmove", "pointerdown"]) doc?.addEventListener?.(type, interrupted, { capture: true, passive: true });
+  function snapshot(label) {
+    if (!doc?.querySelectorAll) return [];
+    const control = [...doc.querySelectorAll("input[aria-label], select[aria-label], button[aria-label]")].find(node => node.getAttribute("aria-label") === label);
+    const result = [];
+    for (let node = control?.parentElement; node; node = node.parentElement) {
+      const style = frame.getComputedStyle?.(node);
+      if (node === doc.scrollingElement || node.scrollTop || node.scrollLeft || /auto|scroll/.test((style?.overflowY ?? "") + (style?.overflowX ?? ""))) result.push({ node, top: node.scrollTop, left: node.scrollLeft });
+    }
+    return result;
+  }
+  function restore(saved, current) {
+    if (disposed || revision !== current) return;
+    for (const { node, top, left } of saved) if (node.isConnected) { node.scrollTop = top; node.scrollLeft = left; }
+  }
+  function schedule(saved, current) {
+    if (disposed || !saved.length) return;
+    if (!frame.requestAnimationFrame) { frame.queueMicrotask?.(() => restore(saved, current)); return; }
+    const next = again => {
+      const id = frame.requestAnimationFrame(() => {
+        pending.delete(id); restore(saved, current);
+        if (again && !disposed && revision === current) next(false);
+      });
+      pending.add(id);
+    };
+    next(true);
+  }
+  function wrap(item, name) {
+    const action = item[name];
+    if (typeof action !== "function") return action;
+    return async function(...args) {
+      cancel(); const current = revision;
+      const saved = snapshot(item.label ?? item.key);
+      inFlight++;
+      try { return await action.apply(this, args); }
+      finally { inFlight--; if (revision === current) schedule(saved, current); }
+    };
+  }
+  return {
+    wrapPanel(panel) {
+      return { ...panel, groups: panel.groups.map(group => ({ ...group, items: group.items.map(item => ({ ...item, ...(item.setValue ? { setValue: wrap(item, "setValue") } : {}), ...(item.onClick ? { onClick: wrap(item, "onClick") } : {}) })) })) };
+    },
+    dispose() {
+      if (disposed) return; disposed = true; cancel();
+      submenuObserver?.disconnect();submenuStyle?.remove();
+      for(const row of submenuRows)row.removeAttribute('data-rff-auto-collect-item');
+      submenuRows.clear();
+      for (const type of ["wheel", "touchmove", "pointerdown"]) doc?.removeEventListener?.(type, interrupted, true);
+    }
+  };
+}
+
+export function createTipPartyController(cc) {
+  const hidden = new Map();
+  let disposed = false;
+  const valid = node => !!node && node.isValid !== false;
+  function visible(node) {
+    for (let current = node; current; current = current.parent) {
+      if (current.active === false || current.activeInHierarchy === false) return false;
+      const opacity = current.getComponent?.(cc.UIOpacity);
+      if (opacity?.enabled !== false && opacity?.opacity === 0) return false;
+    }
+    return true;
+  }
+  function restore(root, state) {
+    if (valid(root)) {
+      for (const [child, sibling] of state.children) {
+        if (!valid(child) || child.parent !== state.wrapper) continue;
+        child.parent = root;
+        child.setSiblingIndex?.(sibling);
+      }
+    }
+    if (valid(state.wrapper)) { state.wrapper.removeFromParent(); state.wrapper.destroy(); }
+    hidden.delete(root);
+  }
+  function hide(root) {
+    let state = hidden.get(root);
+    if (!state) {
+      const wrapper = new cc.Node("RussianTipHiddenParty");
+      wrapper.layer = root.layer;
+      wrapper.active = false;
+      wrapper.parent = root;
+      const size = root.getComponent?.(cc.UITransform);
+      if (size) {
+        const ui = wrapper.addComponent(cc.UITransform);
+        ui.setContentSize(size.width, size.height);
+        ui.setAnchorPoint(size.anchorPoint.x, size.anchorPoint.y);
+      }
+      state = { wrapper, children: new Map() };
+      hidden.set(root, state);
+    }
+    const children = [...(root.children ?? [])].map(child => [child, child.getSiblingIndex?.() ?? state.children.size]);
+    for (const [child, sibling] of children) {
+      if (child === state.wrapper) continue;
+      state.children.set(child, sibling);
+      child.parent = state.wrapper;
+    }
+  }
+  return {
+    scan() {
+      if (disposed) return;
+      const scene = cc.director.getScene(), nodes = [];
+      const walk = node => { if (!valid(node)) return; nodes.push(node); for (const child of node.children ?? []) walk(child); };
+      walk(scene);
+      const parties = new Set(nodes.filter(node => node.name === "LODEntrance"));
+      const showing = nodes.some(node => node.name === "GamingTips" && visible(node) &&
+        (node.children ?? []).some(child => !child.__rffOwnedFont && String(child.getComponent?.(cc.Label)?.string ?? "").trim()));
+      for (const [root, state] of hidden) if (!showing || !parties.has(root) || !valid(root)) restore(root, state);
+      if (showing) for (const root of parties) if (visible(root)) hide(root);
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      for (const [root, state] of hidden) restore(root, state);
+    }
+  };
+}
+
+const AUTO_COLLECT_KEY = "local.gardendless.russian-font-fix.auto-collect.v1";
+export function readAutoCollectPreferences(storage) {
+  try {
+    const value = JSON.parse((storage ?? globalThis.localStorage)?.getItem(AUTO_COLLECT_KEY) ?? "null");
+    return { other: value?.other === true, sun: value?.sun === true, plantfood: value?.plantfood === true };
+  } catch (_) { return { other: false, sun: false, plantfood: false }; }
+}
+export function createAutoCollectController(cc, native, log = {}, storage) {
+  const preferences = readAutoCollectPreferences(storage), bound = new WeakSet(), undo = [];
+  let disposed = false, warned = false;
+  function collect(drop, dt, garden) {
+    if (disposed || !(dt > 0) || drop.collected || drop.disabled || drop.fadingAway || drop.node?.isValid === false ||
+      drop.node?.activeInHierarchy === false || drop.enabled === false || drop.mouseListen === false) return;
+    const level = native.LevelPlay?.component, ui = native.UIInGame?.component;
+    if (!garden && (!level || level.gameOver || level.gameWon || level.gameLost || ui?.paused || ui?.exitNextTick || ui?.restartNextTick || ui?.sceneEnabled === false)) return;
+    const type = garden ? "other" : drop.DroppingType === "sun" ? "sun" : drop.DroppingType === "plantfood" ? "plantfood" : drop.DroppingType ? "other" : null;
+    if (!type || !preferences[type] || typeof drop.collect !== "function" || typeof drop.collectable !== "function" || !drop.collectable()) return;
+    if (!drop.ui || drop.ui.isValid === false) return;
+    if (type === "plantfood") {
+      const bank = native.PlantFoodCount?.component;
+      if (!bank || (bank.full() && native.getFreePlantFood?.() !== true)) return;
+    }
+    drop.collect();
+  }
+  function patch(proto, key, garden) {
+    if (!proto || bound.has(proto) || typeof proto[key] !== "function") return;
+    bound.add(proto);
+    const original = proto[key], own = Object.getOwnPropertyDescriptor(proto, key);
+    const replacement = function(dt, ...args) {
+      const result = original.call(this, dt, ...args);
+      try { collect(this, dt, garden); }
+      catch (error) { if (!warned) { warned = true; log.warn?.(`Автоподбор: ${String(error?.message ?? error)}`); } }
+      return result;
+    };
+    proto[key] = replacement;
+    undo.push(() => { if (proto[key] === replacement) { if (own) Object.defineProperty(proto, key, own); else delete proto[key]; } });
+  }
+  function scan() {
+    if (disposed) return;
+    Object.assign(native, native.resolveAutoCollect?.() ?? {});
+    patch(native.dropping?.prototype, "characterUpdate", false);
+    patch(native.droppingInZen?.prototype, "update", true);
+  }
+  return {
+    scan,
+    get preferences() { return { ...preferences }; },
+    setEnabled(key, value) {
+      if (disposed || !Object.hasOwn(preferences, key) || typeof value !== "boolean") return false;
+      preferences[key] = value;
+      try { (storage ?? globalThis.localStorage)?.setItem(AUTO_COLLECT_KEY, JSON.stringify(preferences)); }
+      catch (_) { log.warn?.("Автоподбор изменён на текущий запуск; сохранить настройку не удалось."); }
+      scan();
+      return true;
+    },
+    dispose() { if (disposed) return; disposed = true; for (const restore of undo.reverse()) restore(); undo.length = 0; }
+  };
+}
+
+export function authoredLines(text) {
+  return String(text).trim().split(/\r?\n/).map(line=>line.trim().replace(/\s+/g," "));
+}
+
+export function balancedLines(text,width,size,measure,style) {
+  const result=[];
+  for(const paragraph of authoredLines(text)) {
+    const words=paragraph.split(" "),count=words.length,greedy=[];
+    let current="";
+    for(const word of words){const next=current?`${current} ${word}`:word;if(current&&measure(next,style)*size>width){greedy.push(current);current=word;}else current=next;}
+    greedy.push(current);
+    const rows=greedy.length;
+    if(rows===1||count>160){result.push(...greedy);continue;}
+    const widths=new Map(),line=(i,j)=>words.slice(i,j).join(" ");
+    const span=(i,j)=>{const key=i*count+j;if(!widths.has(key))widths.set(key,measure(line(i,j),style)*size);return widths.get(key);};
+    const dp=Array.from({length:rows+1},()=>Array(count+1).fill(Infinity)),previous=dp.map(row=>row.map(()=>-1));dp[0][0]=0;
+    for(let row=1;row<=rows;row++)for(let end=row;end<=count;end++)for(let begin=end-1;begin>=row-1;begin--) {
+      const w=span(begin,end);if(w>width&&end>begin+1)break;
+      if(w>width||!Number.isFinite(dp[row-1][begin]))continue;
+      const slack=(width-w)/Math.max(1,width),cost=dp[row-1][begin]+slack*slack;
+      if(cost<dp[row][end]){dp[row][end]=cost;previous[row][end]=begin;}
+    }
+    if(previous[rows][count]<0){result.push(...greedy);continue;}
+    let end=count;const lines=[];
+    for(let row=rows;row>0;row--){const begin=previous[row][end];lines.unshift(line(begin,end));end=begin;}
+    result.push(...lines);
+  }
+  return result;
+}
+
+const VERSION = "1.0.2";
 const RUSSIAN = /[\u0401\u0410-\u044f\u0451]/;
 const CLASSIC_FAMILY = { bold: "GardendlessRussianBalsamiqBold", regular: "GardendlessRussianBalsamiqRegular" };
 export const FONT_OPTIONS = [
@@ -586,22 +1119,13 @@ export const FONT_OPTIONS = [
  {value:"ruslan",label:"Ruslan Display",family:"GardendlessRussianRuslan",file:"RuslanDisplay-Regular.ttf"},
  ...[["shantell","Shantell Sans Bold","ShantellSans-Bold.ttf"],["pangolin","Pangolin","Pangolin-Regular.ttf"],["underdog","Underdog","Underdog-Regular.ttf"],["neucha","Neucha","Neucha.ttf"],["lobster","Lobster","Lobster-Regular.ttf"],["caveat","Caveat Bold","Caveat-Bold.ttf"],["seymour","Seymour One","SeymourOne-Regular.ttf"],["nunito","Nunito ExtraBold","Nunito-ExtraBold.ttf"],["rubik","Rubik SemiBold","Rubik-SemiBold.ttf"],["comfortaa","Comfortaa Bold","Comfortaa-Bold.ttf"],["ptsanscaption","PT Sans Caption Bold","PTSansCaption-Bold.ttf"],["marmelad","Marmelad","Marmelad-Regular.ttf"]].map(([value,label,file])=>({value,label,file,family:"GardendlessRussian"+value}))
 ];
-const THEMES=Object.fromEntries(FONT_OPTIONS.map(o=>[o.value,{bold:o.family,regular:CLASSIC_FAMILY.regular}]));
-const FONT_PREFERENCE_KEY = "local.gardendless.russian-font-fix.font-style.v1";
-const BODY_PREFERENCE_KEY = "local.gardendless.russian-font-fix.body-style.v1";
-const DIALOG_PREFERENCE_KEY = "local.gardendless.russian-font-fix.dialog-style.v1";
 const STARTUP_LANGUAGE_KEY = "local.gardendless.russian-font-fix.startup-language.v1";
 export function readStartupLanguage(storage) {
   try { return (storage ?? globalThis.localStorage)?.getItem(STARTUP_LANGUAGE_KEY) === "en" ? "en" : "ru"; }
   catch (_) { return "ru"; }
 }
-function styleTheme(resources, style) {
-  const choice = style === "dialog" ? (resources.dialogTheme ?? "nunito") : style === "regular" ? (resources.bodyTheme ?? "shantell") : "heading";
-  return choice === "heading" ? (resources.theme ?? "ruslan") : choice;
-}
-const fontFor = (resources,style) => resources.custom && style === "compact" ? CLASSIC_FAMILY.bold : resources.custom ? styleTheme(resources,style) === "classic" && style !== "bold" ? CLASSIC_FAMILY.regular : (THEMES[styleTheme(resources,style)] ?? THEMES.bubbles).bold : "Arial";
-function savedChoice(key, fallback) { try { const value=globalThis.localStorage?.getItem(key); return (value==="heading"||value in THEMES) ? value : fallback; } catch (_) { return fallback; } }
-function savedTheme() { return savedChoice(FONT_PREFERENCE_KEY,"ruslan"); }
+const styleTheme = fontSlotChoice;
+const fontFor = (resources,style) => fontSlotFamily(resources,style,FONT_OPTIONS);
 const STYLE_KEYS = ["font", "useSystemFont", "fontFamily", "fontSize", "lineHeight", "spacingX", "isBold", "enableWrapText", "overflow", "cacheMode", "verticalAlign", "outlineWidth"];
 const SIZE_RATIO = 0.68;
 const PREFERENCE_KEY = "local.gardendless.russian-font-fix.size-percent.v1";
@@ -667,7 +1191,7 @@ function measurer(resources) {
     }
     if (!(width > 0)) {
       const theme = styleTheme(resources,style);
-      const m = resources.custom ? resources.metrics?.[style === "compact" ? "bold" : theme !== "classic" ? theme : style === "bold" ? "bold" : "regular"] : null;
+      const m = resources.custom ? resources.metrics?.[theme === "classic" ? "bold" : theme] : null;
       width = [...text].reduce((sum, c) => sum + (m ? number(m.widths[c], 700) / m.unitsPerEm : 0.68), 0);
     }
     if (cache.size >= 2048) cache.clear();
@@ -695,9 +1219,9 @@ function russianTime(text) {
     .replace(/(\d+)\s*m\b/gi,"$1 мин.").replace(/(\d+)\s*s\b/gi,"$1 с.");
 }
 
- 
+
 export function createController(cc, resources, log = {}) {
-  const states = new Map(), controls = new Map(), richStates = new Map(), timerNodes = new Map(), tipNodes=new Map(), measure = measurer(resources);
+  const states = new Map(), controls = new Map(), richStates = new Map(), almanacLayouts = new Map(), timerNodes = new Map(), tipNodes=new Map(), measure = measurer(resources);
   let disposed = false, warned = false, affected = 0;
   const ancestor = (node, pattern) => { for (let n=node;n;n=n.parent) if(pattern.test(n.name ?? "")) return n; return null; };
 
@@ -733,17 +1257,17 @@ export function createController(cc, resources, log = {}) {
     if (!role) return null;
     const prose = role === "almanac-prose", value = role === "almanac-stat-value";
     const nativeNumeric = value && !RUSSIAN.test(state.source);
-    const style = prose ? "regular" : "bold";
+    const style = styleFor(label,state);
     const card = label.node.parent;
     const family = value && /^семейство(?:\s|$)/iu.test(sourceOf(component(card.children?.find(n=>n.name === "NAME"),cc,"Label")));
-     
-     
+
+
     const familyWidth = (number(transform(card,cc)?.width,800) * 0.28 - number(label.node.position?.x) - 12) / positive(label.node.scale?.x);
     const source = family ? state.source.trim().replace(/^Семейство\s+/iu,"") : state.source.trim();
     const width = family ? Math.min(state.own.width,familyWidth) : state.own.width, available = Math.max(1, width - 16);
     let size = Math.floor(nativeNumeric ? number(state.original.fontSize,94.5)*number(resources.percent,68)/100 : baseSize(label, state));
-     
-     
+
+
     if (!prose && !nativeNumeric) size = Math.min(size, Math.max(1, Math.floor(available / Math.max(1, measure(source, style) * 1.04))));
     const lineHeight = Math.round(size * LINE_RATIO * 10) / 10;
     const lines = prose ? wrapWords(source,available / 1.04,size,measure,style) : [source];
@@ -758,26 +1282,51 @@ export function createController(cc, resources, log = {}) {
     const width = state.own.width, height = state.own.height, source = state.source.trim();
     const usable = Math.max(1,width - (label.enableOutline ? number(label.outlineWidth,2)*2 : 0) - 8);
     let size = Math.floor(baseSize(label,state));
-    const longest = Math.max(1,...source.split(/\s+/).map(word=>measure(word,"bold")));
+    const longest = Math.max(1,...source.split(/\s+/).map(word=>measure(word,styleFor(label,state))));
     size = Math.min(size,Math.floor(usable / (longest*1.04)));
     while (size > 1) {
-      const lines = wrapWords(source,usable/1.04,size,measure,"bold");
+      const lines = wrapWords(source,usable/1.04,size,measure,styleFor(label,state));
       const fitsHeight = (lines.length - 1) * size * LINE_RATIO + size * 1.35 <= height - 4;
       if (fitsHeight && (lines.length <= 2 || size <= 22)) break;
       size--;
     }
-    const lines = wrapWords(source,usable/1.04,size,measure,"bold");
-    return { fontFamily: fontFor(resources,"bold"), useSystemFont: true, fontSize: size, lineHeight: Math.round(size*LINE_RATIO*10)/10,
+    const lines = wrapWords(source,usable/1.04,size,measure,styleFor(label,state));
+    return { fontFamily: fontFor(resources,styleFor(label,state)), useSystemFont: true, fontSize: size, lineHeight: Math.round(size*LINE_RATIO*10)/10,
       spacingX: 0, isBold: false, enableWrapText: false, overflow: 1, verticalAlign: 1, cacheMode: 0, string: lines.join("\n"),
-      bounds: { width, height, maxSize: Infinity, multiline: true, fixed: true, role: "medal-title" }, geometry: { width,height }, style: "bold", lines };
+      bounds: { width, height, maxSize: Infinity, multiline: true, fixed: true, role: "medal-title" }, geometry: { width,height }, style:styleFor(label,state), lines };
   }
 
-  function reflowAlmanac(nodes) {
-     
-     
+  function reflowAlmanac(nodes, pages = new Set()) {
     const layouts = new Set();
+    const restoreLayout = (layout, saved) => {
+      if (layout.isValid !== false && layout.node?.isValid !== false) {
+        layout.paddingTop = saved.paddingTop; layout.paddingBottom = saved.paddingBottom; layout.spacingY = saved.spacingY;
+        layouts.add(layout);
+      }
+    };
+    for (const [layout, saved] of almanacLayouts) if (!pages.has(almanacPage(layout.node))) {
+      restoreLayout(layout, saved); almanacLayouts.delete(layout);
+    }
+    for (const page of pages) {
+      const visit = node => {
+        if (ancestor(node, /^Introduction$/) && /^(texts|content|elements)$/.test(node.name)) {
+          const layout = component(node, cc, "Layout");
+          if (layout?.enabled) {
+            layouts.add(layout);
+            if (node.name !== "elements") {
+              let saved = almanacLayouts.get(layout);
+              if (!saved) { saved = { paddingTop: layout.paddingTop, paddingBottom: layout.paddingBottom, spacingY: layout.spacingY }; almanacLayouts.set(layout, saved); }
+              if (node.name === "texts") { layout.paddingTop = saved.paddingTop + 32; layout.spacingY = saved.spacingY + 22; }
+              else layout.paddingBottom = saved.paddingBottom + 20;
+            }
+          }
+        }
+        for (const child of node.children ?? []) visit(child);
+      };
+      visit(page);
+    }
     for (const node of nodes) for (let n = node.parent; n && almanacPage(n); n = n.parent) {
-      if (n.name === "texts" || n.name === "content") {
+      if (/^(texts|content|elements)$/.test(n.name)) {
         const layout = component(n, cc, "Layout");
         if (layout?.enabled) layouts.add(layout);
       }
@@ -804,7 +1353,8 @@ export function createController(cc, resources, log = {}) {
         state = { original: Object.fromEntries(keys.map(k=>[k,owner[k]])), source: String(owner.string ?? ""), applied: null };
         richStates.set(owner,state);
       } else if (owner.string !== state.applied?.string) state.source = String(owner.string ?? "");
-      const style = ancestor(owner.node,/^NPC_Controller$/) ? "dialog" : "regular";
+      if(owner.font && owner.font!==state.original.font)state.original.font=owner.font;
+      const style = originalFontSlot(state.original.font,owner.node,state.original.fontFamily);
       const size = Math.floor(number(state.original.fontSize,60) * number(resources.percent,68) / 100 * opticalFactor(style));
       const desired = { useSystemFont: true, fontFamily: fontFor(resources,style), fontSize: size, lineHeight: Math.round(size * LINE_RATIO * 10)/10,
         maxWidth: almanacPage(owner.node) ? number(transform(owner.node.parent,cc)?.width, number(state.original.maxWidth,1790)) : number(state.original.maxWidth) || number(transform(owner.node,cc)?.width,800), string: state.source.trim() };
@@ -828,9 +1378,9 @@ export function createController(cc, resources, log = {}) {
     if (!state) {
       const ui = transform(label.node, cc);
       state = { source: String(label.string ?? ""), original: Object.fromEntries(STYLE_KEYS.map(k => [k, label[k]])), own: { width: number(ui?.width ?? ui?.contentSize?.width), height: number(ui?.height ?? ui?.contentSize?.height) }, position: { x: number(label.node.position?.x), y: number(label.node.position?.y), z: number(label.node.position?.z) }, applied: null };
-       
-       
-      if (Object.values(THEMES).some(theme => Object.values(theme).includes(label.fontFamily)) || almanacRole(label)?.startsWith("almanac-stat")) {
+
+
+      if (FONT_OPTIONS.some(option => option.family === label.fontFamily) || label.fontFamily === CLASSIC_FAMILY.regular || almanacRole(label)?.startsWith("almanac-stat")) {
         const templates = [...states.entries()].filter(([source,s]) => source.node.name === label.node.name && roleFor(source) === roleFor(label) && s.applied?.fontFamily === label.fontFamily && s.applied?.fontSize === label.fontSize && s.applied?.lineHeight === label.lineHeight);
         if (templates.length && templates.every(([,s])=>s.original.fontSize === templates[0][1].original.fontSize)) {
           state.original = { ...templates[0][1].original };
@@ -839,6 +1389,7 @@ export function createController(cc, resources, log = {}) {
       }
       states.set(label, state);
     } else if (state.applied) {
+      if (label.font && label.font !== state.original.font) state.original.font=label.font;
       if (label.string !== state.applied.string) state.source = String(label.string ?? "");
       for (const key of ["fontSize", "lineHeight"]) {
         if (label[key] !== state.applied[key]) state.original[key] = label[key];
@@ -858,8 +1409,8 @@ export function createController(cc, resources, log = {}) {
   function prepareTipRoot(root){
     const saved=rememberTip(root);let canvas=null,masked=false;
     for(let n=root.parent;n;n=n.parent){if(component(n,cc,'Canvas')||n.name==='Canvas'){canvas=n;break;}if(component(n,cc,'Mask'))masked=true;}
-     
-     
+
+
     if(canvas&&masked){const p=root.worldPosition.clone(),s=root.worldScale.clone(),cs=canvas.worldScale;root.parent=canvas;root.setWorldPosition(p);root.setScale(s.x/positive(cs.x),s.y/positive(cs.y),s.z/positive(cs.z));saved.reparented=true;}
     if(canvas&&root.parent===canvas&&root.activeInHierarchy!==false&&root.getSiblingIndex()<canvas.children.length-1){root.setSiblingIndex(canvas.children.length-1);saved.reordered=true;}
   }
@@ -885,9 +1436,9 @@ export function createController(cc, resources, log = {}) {
     frame?.destroy?.();texture?.destroy?.();image?.destroy?.();state.tipRaster=null;
   }
   function rasterTip(label,state,desired){
-     
-     
-     
+
+
+
     if(!globalThis.document||!cc.ImageAsset||!cc.Texture2D||!cc.SpriteFrame)return;
     const target=state.tipTarget,color=target.color;
     const key=JSON.stringify([desired.fontFamily,desired.fontSize,desired.lineHeight,desired.string,desired.geometry,color.r,color.g,color.b,color.a,resources.percent,globalThis.devicePixelRatio]);
@@ -912,6 +1463,7 @@ export function createController(cc, resources, log = {}) {
   }
   function restore(label, state) {
     releaseTipRaster(state);
+    if(state.counterPill){const saved=tipNodes.get(state.counterPill);if(saved?.size&&state.counterPill.isValid!==false)transform(state.counterPill,cc)?.setContentSize(...saved.size);tipNodes.delete(state.counterPill);state.counterPill=null;}
     if(state.tipTarget){state.tipTarget.node?.destroy?.();state.tipTarget=null;if(label.isValid!==false&&label.node)label.enabled=state.tipEnabled;}
     if (label.isValid === false || !label.node || label.node.isValid === false) return;
     const current = String(label.string ?? "");
@@ -928,11 +1480,14 @@ export function createController(cc, resources, log = {}) {
     const almanac = almanacRole(label);
     if (almanac) return almanac;
     const name = label.node.name ?? "";
+    if(name === "Description" && ancestor(label.node,/^(ExitSure|RestartSure)$/) && ancestor(label.node,/^PauseScreen$/))return "pause-confirm";
     if(name === "Title" && label.node.parent?.name === "windowCommonBorder") return "window-title";
     if(ancestor(label.node,/^(?:LevelTaskCount|LevelTaskDisplayer)(?:\d+)?$/i)) return "task-count";
     if (name === "GameLoseTip") return "lose-tip";
     if (name === "GamingWarn" || ancestor(label.node,/^GamingWarn$/)) return "warning";
     if (name === "Label" && label.node.parent?.name === "GamingTips") return "game-tip";
+    if (name === "Label" && label.node.parent?.name === "LoaderFlower") return "loading-tip";
+    if (name === "ToolTip" && label.node.parent?.name === "LocalLevelNode" && ancestor(label.node,/^FanmadeLevelWindow$/)) return "fanmade-local";
     if ((ancestor(label.node,/^TicketCount$/) && label.node.parent?.name === "TicketCountDown") || /^истекает\s+через/iu.test(sourceOf(label).trim())) return "ticket-expiry";
     if (label.node.name === "Description" && ancestor(label.node,/^LODEntrance$/) && /^до\s+следующего\s*:/iu.test(sourceOf(label).trim())) return "pinata-countdown";
     if (name === "label" && ancestor(label.node,/^NPC_Controller$/)) return "dialog";
@@ -953,9 +1508,9 @@ export function createController(cc, resources, log = {}) {
     return "normal";
   }
 
-   
-   
-   
+
+
+
   function stableControl(label) {
     const node = label.node.parent, layout = component(node, cc, "Layout");
     if (!node || !component(node, cc, "Button") || number(layout?.resizeMode) !== 1) return controls.get(node) ?? null;
@@ -965,18 +1520,23 @@ export function createController(cc, resources, log = {}) {
       if (!ui) return null;
       const presets = { playbutton: [205.833557,108.156], gamestartbutton: [313.2878,116], boostbutton: [315.15765,94.1] };
       presets.laststandstartbutton = presets.gamestartbutton;
-       
-       
+
+
       const target = ancestor(node,/^AlmanacUpgradeDisplayer$/) && node.name === "PlayButton"
         ? [491.092224,171.8]
         : presets[String(node.name).toLowerCase().replace(/_/g,"")] ?? [number(ui.width),number(ui.height)];
       const horizontal = number(layout.type) === 1;
       control = { node, layout, enabled: layout.enabled, resizeMode: layout.resizeMode, original: [number(ui.width),number(ui.height)], width: target[0], height: target[1], horizontal };
+      if (ancestor(node,/^AlmanacUpgradeDisplayer$/) && node.name === "PlayButton") {
+        control.position = node.position.clone?.() ?? {...node.position};
+        const frame = box(node.parent,cc), ps = scale(node.parent), ns = scale(node), anchorY = number(ui.anchorPoint?.y,.5);
+        if (frame) node.setPosition(number(node.position.x), Math.max(control.position.y, (frame.bottom + 26*ps.y + control.height*ns.y*anchorY - point(node.parent).y)/ps.y), number(node.position.z));
+      }
       if (horizontal) {
         const siblings = (node.children ?? []).filter(other => other !== label.node && other.active !== false);
         control.captionWidth = control.width - number(layout.paddingLeft) - number(layout.paddingRight) - siblings.length * number(layout.spacingX) - siblings.reduce((sum,other) => sum + number(transform(other,cc)?.width) * positive(other.scale?.x),0);
-         
-         
+
+
         for (const sibling of siblings) {
           const other = component(sibling,cc,"Label");
           if (other && !RUSSIAN.test(String(other.string))) other.updateRenderData?.(true);
@@ -995,6 +1555,7 @@ export function createController(cc, resources, log = {}) {
       if (present && [...states.keys()].some(label => label.node.parent === node && present.has(label))) continue;
       if (node.isValid !== false) {
         transform(node, cc)?.setContentSize?.(...control.original);
+        if (control.position) node.setPosition?.(control.position);
         if (control.layout.isValid !== false) { control.layout.resizeMode = control.resizeMode; control.layout.enabled = control.enabled; }
       }
       controls.delete(node);
@@ -1003,29 +1564,23 @@ export function createController(cc, resources, log = {}) {
 
   function adviceContext(node) {
     if(ancestor(node,/^NPC_Controller$/i))return false;
-     
-     
+
+
     if(ancestor(node,/^SettingWindow$/i)&&/^(?:ToolTip|KeyTip|RestartTip)$/i.test(node?.name??""))return true;
     if(ancestor(node,/^KeyTips?$/i))return false;
     return !!ancestor(node,/tip|hint|help|instruction|howtoplay|guide|^InfoWindow$/i);
   }
-  function styleFor(label, state) {
-    if(roleFor(label)==='objective-prose')return 'regular';
-    if(adviceContext(label.node))return "regular";
-    if (roleFor(label) === "dialog") return "dialog";
-    if (["warning","reward-heading","arcade-heading","arcade-caption","ticket-expiry"].includes(roleFor(label))) return "bold";
-    if (roleFor(label) === "game-tip") return "regular";
-    const fixedProse = number(state.original.overflow) !== 0 && state.original.enableWrapText !== false && state.source.length > 55;
-    return /brief|description|illustration|mission|restarttip/i.test(label.node.name ?? "") || fixedProse || state.source.length > 100 ? "regular" : "bold";
+  function styleFor(label,state) {
+    return originalFontSlot(state?.original.font ?? label.font,label.node,state?.original.fontFamily ?? label.fontFamily);
   }
 
-  function opticalFactor(style) { return resources.custom && styleTheme(resources,style) === "ruslan" ? 1.18 : 1; }
-  function baseSize(label, state) { return Math.max(1, number(state?.original.fontSize ?? label.fontSize, 40) * number(resources.percent, SIZE_RATIO * 100) / 100 * opticalFactor(state ? styleFor(label,state) : "bold")); }
+  function opticalFactor(style) { return fontOpticalFactor(resources,style); }
+  function baseSize(label, state) { return Math.max(1, number(state?.original.fontSize ?? label.fontSize, 40) * number(resources.percent, SIZE_RATIO * 100) / 100 * opticalFactor(styleFor(label,state))); }
   function sourceOf(label) { const s = states.get(label); return s && label?.string === s.applied?.string ? s.source : String(label?.string ?? ""); }
   function idealWidth(label) {
     const state = states.get(label);
     if (!RUSSIAN.test(sourceOf(label)) && !adviceContext(label.node)) return box(label.node, cc)?.width ?? 0;
-    const style = state ? styleFor(label, state) : "bold";
+    const style = styleFor(label,state);
     return Math.max(...sourceOf(label).trim().split(/\r?\n/).map(t => measure(t, style))) * baseSize(label, state) * scale(label.node).x;
   }
 
@@ -1045,7 +1600,7 @@ export function createController(cc, resources, log = {}) {
       if (!b || b.width / ns.x < 30 || b.height / ns.y < 15 || p.x < b.left - ns.x || p.x > b.right + ns.x || p.y < b.bottom - ns.y || p.y > b.top + ns.y) continue;
       const button = component(n, cc, "Button");
       const visual = button || component(n, cc, "Sprite") || component(n, cc, "Slider");
-       
+
       if (visual || (b.width / ns.x >= 180 && b.height / ns.y >= 90)) return { node: n, box: b, button: !!button };
     }
     return null;
@@ -1059,18 +1614,18 @@ export function createController(cc, resources, log = {}) {
     let maxSize = screen ? screen.height * 0.075 / s.y : Infinity;
     const role = roleFor(label), control = stableControl(label);
     if (role === "world") {
-       
+
       const group = labels.filter(other => roleFor(other) === "world" && other.node.parent === node.parent && RUSSIAN.test(sourceOf(other)));
       width = Math.min(width, state.own.width > 50 ? state.own.width : 640);
       const rows=Math.max(1,...group.map(other=>sourceOf(other).trim().split(/\s+/).length));
-      const longest=Math.max(1,...group.flatMap(other=>sourceOf(other).trim().split(/\s+/).map(word=>measure(word,"bold"))));
+      const longest=Math.max(1,...group.flatMap(other=>sourceOf(other).trim().split(/\s+/).map(word=>measure(word,styleFor(other,states.get(other))))));
       height=Math.min(state.own.height>15?state.own.height:236,236);
       maxSize=Math.min(100,Math.floor((width-20)/(longest*1.04)),Math.floor((height-16)/(rows*1.3)));
       return {width,height,maxSize,multiline:true,fixed:true,role};
     }
     if (role === "level" || role === "intro") {
-       
-       
+
+
       return { width: Math.min(width,state.own.width*0.94), height: state.own.height*0.94, maxSize, multiline: false, fixed: true, role };
     }
     if (control) {
@@ -1093,7 +1648,7 @@ export function createController(cc, resources, log = {}) {
       for (const other of labels) {
         if (other === label || other.node.activeInHierarchy === false || !descendants(other.node, frame.node)) continue;
         const op = point(other.node), os = scale(other.node);
-         
+
         if (Math.abs(op.y - p.y) > Math.min(baseSize(label, state) * s.y, baseSize(other, states.get(other)) * os.y) * 0.55) continue;
         const oa = anchor(other.node, cc);
         const opposite = (ax < 0.25 && oa > 0.75 && op.x > p.x) || (ax > 0.75 && oa < 0.25 && op.x < p.x);
@@ -1109,7 +1664,7 @@ export function createController(cc, resources, log = {}) {
           available = Math.min(available, (p.x - edge) * (ax < 0.75 ? 2 : 1));
         }
       }
-       
+
       for (let branch = node; branch && branch !== frame.node; branch = branch.parent) {
         for (const obstacle of branch.parent?.children ?? []) {
           if (obstacle === branch || component(obstacle, cc, "Label") || obstacle.active === false) continue;
@@ -1126,7 +1681,7 @@ export function createController(cc, resources, log = {}) {
       }
       if (available / s.x > 5) width = Math.min(width, available / s.x);
     }
-     
+
     const compactTextBox = fixed && number(state.original.overflow) === 2 && state.own.width / Math.max(1, state.own.height) < 5 && /\s/.test(state.source);
     const prose = /brief|description|illustration|mission/i.test(node.name ?? "") || (fixed && state.original.enableWrapText !== false && state.source.length > 55) || compactTextBox;
     const multiline = !title && (prose || /\S[^\n]*\n[^\n]*\S/.test(state.source)) && fixed && (!frame?.button || state.original.enableWrapText !== false);
@@ -1139,30 +1694,34 @@ export function createController(cc, resources, log = {}) {
     try{inkCanvas??=globalThis.document?.createElement("canvas").getContext("2d");if(inkCanvas){inkCanvas.font=`${size}px "${fontFor(resources,style)}"`;return {ascent:Math.max(...lines.map(t=>inkCanvas.measureText(t).actualBoundingBoxAscent??size)),descent:Math.max(...lines.map(t=>inkCanvas.measureText(t).actualBoundingBoxDescent??size*.3))};}}catch(_){}
     return {ascent:size,descent:size*.35};
   }
-  function fitBlock(label,state,{width,height,base=baseSize(label,state),style=styleFor(label,state),role=roleFor(label),source=state.source.trim(),maxLines=2,forceWrap=false,grow=false}) {
+  function fitBlock(label,state,{width,height,base=baseSize(label,state),style=styleFor(label,state),role=roleFor(label),source=state.source.trim(),maxLines=2,forceWrap=false,grow=false,preserveLines=false}) {
     const outline=label.enableOutline ? Math.min(number(state.original.outlineWidth,2), role === "warning" ? 3 : Infinity) : 0;
     const usable=Math.max(1,width-outline*2-10), space=Math.max(1,height-outline*2-8);
     const natural=Math.max(...source.split(/\r?\n/).map(t=>measure(t,style)));
     const single=Math.min(base,usable/Math.max(.01,natural*1.04),space/1.35);
-    const multiline=forceWrap || source.includes("\n") || (single < base*.8 && /\s/.test(source));
-    let size=Math.max(1,Math.floor(multiline ? base : single));
-    let lines=multiline ? wrapWords(source,usable/1.04,size,measure,style) : [source.replace(/\s*\r?\n\s*/g," ")];
+    const hint=["game-tip","loading-tip","advice"].includes(role),authored=authoredLines(source);
+    const authoredSize=Math.min(base,usable/Math.max(.01,natural*1.04));
+    const keepLines=preserveLines || (hint&&authoredSize>=base*.88&&authored.length<=maxLines);
+    const multiline=keepLines || forceWrap || source.includes("\n") || (single < base*.8 && /\s/.test(source));
+    const arrange=size=>keepLines?authored:multiline?(hint?balancedLines:wrapWords)(source,usable/1.04,size,measure,style):[source.replace(/\s*\r?\n\s*/g," ")];
+    let size=Math.max(1,Math.floor(keepLines?authoredSize:multiline?base:single));
+    let lines=arrange(size);
     if (multiline) while(size>1 && (Math.max(...lines.map(t=>measure(t,style)))*size*1.04>usable || lines.length>maxLines || (!grow && (lines.length-1)*size*LINE_RATIO+size*1.35>space))) {
-      size--;lines=wrapWords(source,usable/1.04,size,measure,style);
+      size--;lines=arrange(size);
     }
     let ink=inkBounds(lines,style,size),lineHeight=Math.max(size*LINE_RATIO,ink.ascent+ink.descent+outline*2+4);
     let tipHeight=(lines.length-1)*lineHeight+Math.max(size*1.65,ink.ascent+ink.descent)+outline*2+24;
-     
-     
-     
-    if(["advice","fanmade-title","arcade-confirm","arcade-reward","game-tip"].includes(role))while(size>1&&tipHeight>height){size--;lines=multiline?wrapWords(source,usable/1.04,size,measure,style):[source.replace(/\s*\r?\n\s*/g," ")];ink=inkBounds(lines,style,size);lineHeight=Math.max(size*LINE_RATIO,ink.ascent+ink.descent+outline*2+4);tipHeight=(lines.length-1)*lineHeight+Math.max(size*1.65,ink.ascent+ink.descent)+outline*2+24;}
+
+
+
+    if(["advice","fanmade-title","arcade-confirm","arcade-reward","game-tip","loading-tip","fanmade-local","pause-confirm","dialog"].includes(role))while(size>1&&tipHeight>height){size--;lines=arrange(size);ink=inkBounds(lines,style,size);lineHeight=Math.max(size*LINE_RATIO,ink.ascent+ink.descent+outline*2+4);tipHeight=(lines.length-1)*lineHeight+Math.max(size*1.65,ink.ascent+ink.descent)+outline*2+24;}
     return {fontFamily:fontFor(resources,style),useSystemFont:true,fontSize:size,lineHeight:Math.round(lineHeight*10)/10,
       spacingX:0,isBold:false,enableWrapText:false,overflow:1,verticalAlign:1,cacheMode:0,string:lines.join("\n"),
       ...(role === "warning" ? {outlineWidth:outline} : {}),bounds:{width,height:grow?Infinity:height,maxSize:Infinity,multiline,fixed:true,role},geometry:{width,height:grow?tipHeight:height},style,lines};
   }
 
-   
-   
+
+
   function timerNode(node, present) {
     present.add(node);
     let saved = timerNodes.get(node);
@@ -1219,7 +1778,7 @@ export function createController(cc, resources, log = {}) {
       const b=timerNode(badge,present),l=timerNode(label.node,present),ui=transform(badge,cc);
       ui?.setContentSize?.(300,110);
       label.node.setScale?.(1,1,l.scale[2]);label.node.setPosition?.(0,0,l.position[2]);
-       
+
       const countHeight=number(transform(root,cc)?.height,95.4), by=positive(b.scale[1]);
       badge.setPosition?.(0,-countHeight/2-8-110*by/2,b.position[2]);
 
@@ -1232,84 +1791,186 @@ export function createController(cc, resources, log = {}) {
   function specialPlan(label,state,labels) {
     const tuned=value=>value*number(resources.percent,68)/68;
     const role=roleFor(label), node=label.node, ui=transform(node.parent,cc);
+    if (node.name === "description" && ancestor(node,/^AlmanacUpgradeDisplayer$/)) {
+      const button = node.parent?.getChildByName?.("PlayButton"), caption = button?.getChildByName?.("Label");
+      if (caption) stableControl(component(caption,cc,"Label"));
+      const frame = button && box(button,cc), ns = scale(node), ps = scale(node.parent);
+      const top = point(node.parent).y + state.position.y*ps.y;
+      const height = frame ? Math.max(1,(top-frame.top-22*ps.y)/ns.y) : state.own.height;
+      const fit = fitBlock(label,state,{width:state.own.width,height,role:"upgrade-description",maxLines:6,forceWrap:true});
+      fit.verticalAlign=0;return fit;
+    }
+    if(role === "pause-confirm")return fitBlock(label,state,{width:state.own.width,height:state.own.height,role,maxLines:Math.max(1,authoredLines(state.source).length),preserveLines:true});
     if(role==='objective-prose'){
       const row=node.parent,layout=component(row,cc,'Layout'),icons=(row.children??[]).filter(n=>n!==node&&n.active!==false);
       const reserved=icons.reduce((sum,n)=>sum+number(transform(n,cc)?.width)*positive(n.scale.x),0)+icons.length*number(layout?.spacingX);
       const width=Math.max(200,number(ui?.width,1200)-number(layout?.paddingLeft)-number(layout?.paddingRight)-reserved-24);
-      return fitBlock(label,state,{width,height:400,base:tuned(44),style:'regular',role,maxLines:8,forceWrap:true,grow:true});
+      const pause=ancestor(node,/^PauseScreen$/),sound=pause&&labels.find(other=>other.node.name==='ToolTip'&&other.node.parent?.name==='MusicVolume'&&ancestor(other.node,/^PauseScreen$/)===pause&&states.has(other));
+      const reference=sound&&plan(sound,states.get(sound),labels);
+      const base=reference?reference.fontSize*scale(sound.node).y/scale(node).y*.95:tuned(40)*opticalFactor(styleFor(label,state));
+      return fitBlock(label,state,{width,height:400,base,style:styleFor(label,state),role,maxLines:8,forceWrap:true,grow:true});
+    }
+    if(role === "fanmade-local") {
+      return fitBlock(label,state,{width:500,height:160,base:tuned(52),role,maxLines:2,forceWrap:true});
+    }
+    if(role === "loading-tip") {
+      const screen=screenBox(node),ns=scale(node);
+      return fitBlock(label,state,{width:screen?screen.width*.92/ns.x:2000,height:screen?screen.height*.28/ns.y:440,base:tuned(screen?screen.height*.035/ns.y:56),role,maxLines:12,grow:true,forceWrap:true});
     }
     if(role === "window-title") {
+      const frame=node.parent?.parent;
+      const medals=ancestor(node,/^PlantMedalDisplayer$/);
+      if(medals) {
+        const ns=scale(node),ps=scale(node.parent),top=point(node.parent).y+state.position.y*ps.y+16*ns.y;
+        const content=[];const visit=n=>{if(n.name==='ScrollView'&&n.activeInHierarchy!==false){const r=box(n,cc);if(r)content.push(r.top);}for(const child of n.children??[])visit(child);};visit(medals);
+        const height=Math.min(150,content.length?Math.max(1,(top-Math.max(...content)-20*ns.y)/ns.y):state.own.height);
+        const width=Math.min(1800,Math.max(state.own.width,number(ui?.width,1200)*.72));
+        const fit=fitBlock(label,state,{width,height,base:tuned(104),role,maxLines:1});
+        fit.position={...state.position,y:state.position.y+16*ns.y/ps.y};return fit;
+      }
+      if(frame?.parent?.name === "FanmadeLevelWindow") {
+        const ns=scale(node),ps=scale(node.parent),local=frame.getChildByName?.("LocalLevelNode"),caption=local?.getChildByName?.("ToolTip"),close=frame.getChildByName?.("buttonExit"),border=box(node.parent,cc);
+        if(caption&&border) {
+          const captionLeft=point(caption).x,left=captionLeft+500*scale(caption).x+28*ns.x,right=(close&&box(close,cc)?.left)??border.right-80*ns.x;
+          if(right>left) {
+            const fit=fitBlock(label,state,{width:(right-left)/ns.x-24,height:150,base:tuned(104),role,maxLines:1});
+            fit.position={...state.position,x:((left+right)/2-point(node.parent).x)/ps.x};return fit;
+          }
+        }
+      }
+      if(frame?.parent?.name === "PlayerSelector") {
+        const border=box(node.parent,cc),ns=scale(node),ps=scale(node.parent);
+        if(border) {
+          const gap=24*ns.x,center=(border.left+border.right)/2;
+          let left=border.left+gap,right=border.right-gap;
+          for(const name of ["FixPlayer","buttonExit"]) {
+            const control=frame.getChildByName?.(name);
+            if(!control || control.activeInHierarchy===false)continue;
+            const r=box(control,cc);if(!r)continue;
+            if((r.left+r.right)/2<center)left=Math.max(left,r.right+gap);
+            else right=Math.min(right,r.left-gap);
+          }
+          if(right>left) {
+            const width=(right-left)/ns.x;
+            const fit=fitBlock(label,state,{width:Math.max(1,width-32),height:Math.max(state.own.height,150),base:tuned(104),style:styleFor(label,state),role,maxLines:1});
+            fit.geometry.width=width;fit.bounds.width=width;
+            fit.position={...state.position,x:((left+right)/2-point(node.parent).x)/ps.x};
+            return fit;
+          }
+        }
+      }
       const width=Math.min(1800,Math.max(state.own.width,number(ui?.width,1200)*.72));
-      return fitBlock(label,state,{width,height:Math.max(state.own.height,150),base:tuned(104),style:"bold",role,maxLines:1});
+      return fitBlock(label,state,{width,height:Math.max(state.own.height,150),base:tuned(104),style:styleFor(label,state),role,maxLines:1});
     }
     if(role === "task-count") {
-       
-       
-      const root=ancestor(node,/^(?:LevelTaskCount|LevelTaskDisplayer)(?:\d+)?$/i),pill=root?.getChildByName?.("taskCountWindow"),icon=root?.getChildByName?.("Icon"),frame=pill&&box(pill,cc),s=scale(node),p=point(node),rs=scale(root??node);
+
+
+      const root=ancestor(node,/^(?:LevelTaskCount|LevelTaskDisplayer)(?:\d+)?$/i),pill=root?.getChildByName?.("taskCountWindow"),icon=root?.getChildByName?.("Icon");
+      if(pill&&/^Осталось(?:\s|:)/u.test(state.source)){state.counterPill=pill;const saved=rememberTip(pill);transform(pill,cc)?.setContentSize(Math.max(saved.size?.[0]??150,174),saved.size?.[1]??45);}
+      const frame=pill&&box(pill,cc),s=scale(node),p=point(node),rs=scale(root??node);
       const left=frame?Math.max(frame.left+8*rs.x,((icon&&box(icon,cc)?.right)??frame.left)+6*rs.x):null;
       const right=frame?frame.right-8*rs.x:null,width=frame?Math.max(1,right-left)/s.x:Math.max(state.own.width,250),height=frame?Math.max(1,(frame.height-8*rs.y)/s.y):Math.max(state.own.height,110);
-      const fit=fitBlock(label,state,{width,height,source:state.source.replace(/\s+/g," ").trim(),base:tuned(44),style:"compact",role,maxLines:1});
+      const fit=fitBlock(label,state,{width,height,source:state.source.replace(/\s+/g," ").trim(),base:tuned(44),style:styleFor(label,state),role,maxLines:1});
       if(frame)fit.position={...state.position,x:((left+right)/2-point(node.parent).x)/scale(node.parent).x};
       return fit;
     }
-    if(label.__rffFanmadeTitle) return fitBlock(label,state,{...label.__rffFanmadeTitle,source:state.source,base:tuned(48),style:"bold",role:"fanmade-title",maxLines:2,forceWrap:true});
-    if(label.__rffArcadeReward) return fitBlock(label,state,{...label.__rffArcadeReward,source:state.source,base:tuned(50),style:"bold",role:"arcade-reward",maxLines:1});
-    if(node.name==="Upload"&&node.parent?.name==="confirm_frame") {
-       
-       
-      return fitBlock(label,state,{width:Math.min(154,number(ui?.width,177.5)-24),height:state.own.height,source:state.source.replace(/^Подтверждено$/iu,"Подтверж-\nдено"),base:tuned(30),style:"bold",role:"arcade-confirm",maxLines:2,forceWrap:true});
+    if(label.__rffFanmadeTitle) return fitBlock(label,state,{...label.__rffFanmadeTitle,source:state.source,base:tuned(48),style:styleFor(label,state),role:"fanmade-title",maxLines:2,forceWrap:true});
+    if(label.__rffArcadeReward) {
+      const reward=label.__rffArcadeReward,multiline=reward.maxLines===2;
+      return fitBlock(label,state,{...reward,source:state.source,base:tuned(multiline?44:50),style:styleFor(label,state),role:"arcade-reward",maxLines:reward.maxLines??1,forceWrap:multiline});
+    }
+    if(node.parent?.name==="confirm_frame" && /^(Change|Fault|Half|Correct|Steps|Upload)$/.test(node.name)) {
+      const index=['Change','Fault','Half','Correct'].indexOf(node.name),legend=index>=0,upload=node.name==='Upload',frame=box(node.parent,cc),ps=scale(node.parent),ns=scale(node);
+      const style=styleFor(label,state),outline=label.enableOutline?number(label.outlineWidth,2):0;
+      const left=legend?state.position.x+8:-(number(ui?.width,177.5)/2)+24;
+      const width=legend?Math.max(1,number(ui?.width,177.5)/2-14-left):number(ui?.width,177.5)-48;
+      const height=legend?41:upload?76:46,source=upload?state.source.replace(/^Подтверждено$/iu,"Подтверж-\nдено"):state.source.trim();
+      const available=Math.max(1,width-outline*2-8);
+      let size=Math.floor(upload?tuned(30):baseSize(label,state)),lines,lineHeight;
+      do { lines=balancedLines(source,available/1.04,size,measure,style);const ink=inkBounds(lines,style,size);lineHeight=Math.max(size*LINE_RATIO,ink.ascent+ink.descent+outline*2+2);
+        if(lines.length<=(legend||upload?2:1)&&Math.max(...lines.map(text=>measure(text,style)))*size*1.04<=available&&(lines.length-1)*lineHeight+Math.max(size*1.35,ink.ascent+ink.descent)+outline*2+6<=height)break;
+      } while(--size>1);
+      const position={...state.position,x:upload?0:left,y:legend?41-index*43:upload&&frame?(frame.bottom+14*ps.y+height*ns.y*.5-point(node.parent).y)/ps.y:state.position.y};
+      if(legend){const sign=node.getChildByName?.('sign');if(sign){const saved=rememberTip(sign);sign.setPosition(saved.p.x-8,saved.p.y,saved.p.z);}}
+      return {fontFamily:fontFor(resources,style),useSystemFont:true,fontSize:size,lineHeight:Math.round(lineHeight*10)/10,spacingX:0,isBold:false,enableWrapText:false,overflow:1,verticalAlign:1,cacheMode:0,string:lines.join('\n'),geometry:{width,height},position,style,lines,bounds:{width,height,maxSize:Infinity,multiline:true,fixed:true,role:upload?'arcade-confirm':'arcade-legend'}};
     }
     if(role === "world") {
       const b=budget(label,state,labels);
-      return fitBlock(label,state,{width:b.width,height:b.height,source:state.source.trim().split(/\s+/).join("\n"),base:b.maxSize*number(resources.percent,68)/68,style:"bold",role,maxLines:20,forceWrap:true});
+      return fitBlock(label,state,{width:b.width,height:b.height,source:state.source.trim().split(/\s+/).join("\n"),base:b.maxSize*number(resources.percent,68)/68,style:styleFor(label,state),role,maxLines:20,forceWrap:true});
     }
-    if(role === "lose-tip") return fitBlock(label,state,{width:state.own.width,height:state.own.height,style:"regular",role,maxLines:2});
-    if(label.__rffStorePrice) return fitBlock(label,state,{...label.__rffStorePrice,source:state.source,base:tuned(52),style:"compact",role:"store-price",maxLines:1});
+    if(role === "level" && label.__rffLevelCaption) {
+      return fitBlock(label,state,{...label.__rffLevelCaption,role,maxLines:1});
+    }
+    if(role === "intro") {
+      const b=budget(label,state,labels),fit=fitBlock(label,state,{width:b.width,height:Math.max(100,state.own.height),role,maxLines:2});
+      const screen=screenBox(node),ns=scale(node),ps=scale(node.parent),icons=[];
+      const nativePowerClass=cc.js?.getClassByName?.('PowerupFingers');
+      const visit=n=>{const power=nativePowerClass?n.getComponent?.(nativePowerClass):null;if(power&&n.activeInHierarchy!==false)for(const field of ['fireButton','snowButton','tossButton','zapButton','cherryButton']){const button=power[field]?.node;if(button?.activeInHierarchy!==false){const r=button&&box(button,cc);if(r)icons.push(r);}}if(n.activeInHierarchy!==false&&/^(?:PowerupFingers|Powerup_(?:Snow|Toss|Zap|Flame|Cherry)|PlantFoodCount)$/.test(n.name??"")){const r=box(n,cc);if(r)icons.push(r);}for(const child of n.children??[])visit(child);};
+      let top=node;while(top.parent)top=top.parent;visit(top);
+      const currentBottom=point(node.parent).y+state.position.y*ps.y-fit.geometry.height*ns.y*number(transform(node,cc)?.anchorPoint?.y,.5);
+      const bottom=Math.max(currentBottom,...icons.filter(r=>!screen||r.bottom<screen.bottom+screen.height*.25).map(r=>r.top+12));
+      if(bottom>currentBottom)fit.position={...state.position,y:state.position.y+(bottom-currentBottom)/ps.y};
+      return fit;
+    }
+    if(role === "lose-tip") return fitBlock(label,state,{width:state.own.width,height:state.own.height,style:styleFor(label,state),role,maxLines:2});
+    if(label.__rffStorePrice) return fitBlock(label,state,{...label.__rffStorePrice,source:state.source,base:tuned(52),style:styleFor(label,state),role:"store-price",maxLines:1});
     if(role === "warning") {
-       
-       
+
+
       let canvas=node.parent;while(canvas?.parent && !component(canvas,cc,"Canvas") && canvas.name !== "Canvas") canvas=canvas.parent;
       const designWidth=number(transform(canvas,cc)?.width,1024);
       const width=designWidth*.86/.5;
-      return fitBlock(label,state,{width,height:290,base:90*number(resources.percent,68)/68*opticalFactor("bold"),style:"bold",role,maxLines:2,forceWrap:true});
+      return fitBlock(label,state,{width,height:290,base:90*number(resources.percent,68)/68*opticalFactor(styleFor(label,state)),style:styleFor(label,state),role,maxLines:2,forceWrap:true});
     }
     if(role === "game-tip") {
       const screen=screenBox(node),root=node.parent,rs=scale(root),info=tipIllustration(root);
       const panelWidth=screen?screen.width*.92/rs.x:state.own.width*positive(node.scale.x)+24;
-       
-       
-       
+
+
+
       const tipScale=Math.max(1,panelWidth/900),width=Math.max(120,(panelWidth-info.width-32)/tipScale),effectiveY=rs.y*tipScale;
-      return {...fitBlock(label,state,{width,height:screen?screen.height*.40/effectiveY:600,base:tuned(screen?screen.height*.035/effectiveY:70),style:"regular",role,maxLines:20,grow:true,forceWrap:true}),tipScale};
+      return {...fitBlock(label,state,{width,height:screen?screen.height*.40/effectiveY:600,base:tuned(screen?screen.height*.035/effectiveY:70),style:styleFor(label,state),role,maxLines:20,grow:true,forceWrap:true}),tipScale};
     }
-    if(role === "dialog") return fitBlock(label,state,{width:state.own.width,height:state.own.height,style:"dialog",role,maxLines:12,forceWrap:true});
-    if(role === "reward-heading") return fitBlock(label,state,{width:Math.max(state.own.width,number(ui?.width)*.93),height:state.own.height,style:"bold",role});
+    if(role === "dialog") {
+      const style=styleFor(label,state);
+      let base=baseSize(label,state);
+      if(style==='pico') {
+        const root=ancestor(node,/^NPC_Controller$/),portrait=Boolean(ancestor(node,/Icon_bubble$/));
+        const reference=labels.find(other=>other!==label&&roleFor(other)==='dialog'&&ancestor(other.node,/^NPC_Controller$/)===root&&Boolean(ancestor(other.node,/Icon_bubble$/))===portrait&&styleFor(other,states.get(other))==='brianne');
+        const original=reference&&states.get(reference)?.original;
+        const nativeSize=number(original?.fontSize??reference?.fontSize,70);
+        const ratio=reference?scale(reference.node).y/scale(node).y:1;
+        base=nativeSize*ratio*number(resources.percent,68)/100*opticalFactor(style);
+      }
+      return fitBlock(label,state,{width:state.own.width,height:state.own.height,base,style,role,maxLines:12,forceWrap:true});
+    }
+    if(role === "reward-heading") return fitBlock(label,state,{width:Math.max(state.own.width,number(ui?.width)*.93),height:state.own.height,style:styleFor(label,state),role});
     if(role === "ticket-expiry") {
       const source=russianTime(state.source.trim().replace(/\s+/g," ")).replace(/^истекает\s+через\s*/iu,"").replace(/[!]+$/u,"");
       const native=label.node.parent?.name === "TicketCountDown";
       const width=native ? number(ui?.width)*.90 : Math.max(state.own.width,number(ui?.width)*.89);
       const height=native ? number(ui?.height)*.87 : Math.max(state.own.height,number(ui?.height)*.86);
-      return fitBlock(label,state,{width,height,source,base:tuned(native?48:42),style:"compact",role,maxLines:2});
+      return fitBlock(label,state,{width,height,source,base:tuned(native?48:42),style:styleFor(label,state),role,maxLines:2});
     }
     if(role === "pinata-countdown") {
       const time=russianTime(state.source.trim().replace(/^до\s+следующего\s*:\s*/iu,"").replace(/\s+/g," "));
-      const fit=fitBlock(label,state,{width:320,height:84,source:`До следующего:\n${time}`,base:tuned(30),style:"compact",role,maxLines:2,forceWrap:true});
-       
-       
-       
-       
+      const fit=fitBlock(label,state,{width:320,height:84,source:`До следующего:\n${time}`,base:tuned(30),style:styleFor(label,state),role,maxLines:2,forceWrap:true});
+
+
+
+
       fit.position={...state.position};
       return fit;
     }
-    if(role === "arcade-heading") return fitBlock(label,state,{width:Math.max(state.own.width,number(ui?.width)*.85),height:Math.max(state.own.height,140),style:"bold",role});
+    if(role === "arcade-heading") return fitBlock(label,state,{width:Math.max(state.own.width,number(ui?.width)*.85),height:Math.max(state.own.height,140),style:styleFor(label,state),role});
     if(role === "arcade-caption") {
       const b=budget(label,state,labels);
       const source=state.source.trim().replace(/^Количество растений$/iu,"Число растений");
-      return fitBlock(label,state,{width:b.width,height:Math.max(state.own.height,80),source,style:"bold",role});
+      return fitBlock(label,state,{width:b.width,height:Math.max(state.own.height,80),source,style:styleFor(label,state),role});
     }
     if(adviceContext(node)) {
       const b=budget(label,state,labels),height=Number.isFinite(b.height)?b.height:Math.max(state.own.height,baseSize(label,state)*1.8);
-      const fit=fitBlock(label,state,{width:b.width,height,style:"regular",role:"advice",maxLines:20});
+      const fit=fitBlock(label,state,{width:b.width,height,style:styleFor(label,state),role:"advice",maxLines:20});
       fit.bounds={...b,height,multiline:fit.bounds.multiline,role:"advice"};return fit;
     }
     return null;
@@ -1323,9 +1984,9 @@ export function createController(cc, resources, log = {}) {
     const width = Math.max(1, b.width - outline - 3);
     const height = Math.max(1, b.height - outline - 3);
     let source = b.multiline ? state.source.trim() : state.source.trim().replace(/\s*\r?\n\s*/g, " ");
-     
-     
-     
+
+
+
     if (!b.multiline && !(b.control?.horizontal) && (b.soloButton || b.control || /title|plantname/i.test(label.node.name ?? "")) && /\s/.test(source) && Number.isFinite(b.height) && b.height >= 65) {
       const fit=fitBlock(label,state,{width:b.width,height:b.height,source,base:Math.min(baseSize(label,state),b.maxSize),style,role:b.role});
       if(fit.bounds.multiline) {fit.bounds={...b,multiline:true};return fit;}
@@ -1355,14 +2016,14 @@ export function createController(cc, resources, log = {}) {
   function plan(label,state,labels){
     const desired=basePlan(label,state,labels),percent=number(resources.percent,68);
     if(percent<68){
-       
-       
-       
+
+
+
       const originalPercent=resources.percent;let reference;
       try{resources.percent=68;reference=basePlan(label,state,labels);}finally{resources.percent=originalPercent;}
       const size=Math.max(1,Math.min(desired.fontSize,Math.floor(reference.fontSize*percent/68)));
       if(size<desired.fontSize){const ratio=size/desired.fontSize;desired.fontSize=size;desired.lineHeight=Math.round(desired.lineHeight*ratio*10)/10;
-        if(desired.bounds.role==="game-tip"){
+        if(["game-tip","loading-tip"].includes(desired.bounds.role)){
           const ink=inkBounds(desired.lines,desired.style,size),outline=label.enableOutline?number(state.original.outlineWidth,2):0;
           desired.geometry.height=(desired.lines.length-1)*desired.lineHeight+Math.max(size*1.65,ink.ascent+ink.descent)+outline*2+24;
         }
@@ -1383,7 +2044,7 @@ export function createController(cc, resources, log = {}) {
       for (const [label, state] of states) if (!present.has(label) || label.isValid === false || label.node?.isValid === false) {
         restore(label, state); states.delete(label);
       }
-       
+
       for (const label of labels) {
         if (label.isValid === false || label.node?.isValid === false) continue;
         const state = states.get(label);
@@ -1396,8 +2057,8 @@ export function createController(cc, resources, log = {}) {
       for(const label of labels)if(states.has(label)&&roleFor(label)==='game-tip')prepareTipRoot(label.node.parent);
       const plans = [];
       for (const label of labels) { const state = states.get(label); if (state) plans.push([label, state, plan(label, state, labels)]); }
-       
-       
+
+
       const captions = plans.filter(([label,,desired]) => (desired.bounds.soloButton || desired.bounds.control) && labelList(label.node.parent,cc).length === 1);
       const grouped = new Set();
       for (const entry of captions) {
@@ -1415,20 +2076,21 @@ export function createController(cc, resources, log = {}) {
           grouped.add(other);
         }
       }
-      for(const [label,state,desired] of plans)if(desired.bounds.role==="game-tip"){
+      for(const [label,state,desired] of plans)if(["game-tip","loading-tip"].includes(desired.bounds.role)){
         if(!state.tipTarget?.node||state.tipTarget.node.isValid===false){
           releaseTipRaster(state);state.tipSprite=null;
           state.tipEnabled??=label.enabled;label.enabled=false;
-          const node=new cc.Node('RussianGameTipText');node.parent=label.node.parent;node.layer=label.node.layer;node.__rffOwnedFont=true;node.addComponent(cc.UITransform);
+          const loading=desired.bounds.role==='loading-tip',node=new cc.Node(loading?'RussianLoadingTipText':'RussianGameTipText');node.parent=loading?label.node:label.node.parent;node.layer=label.node.layer;node.__rffOwnedFont=true;node.addComponent(cc.UITransform);
           state.tipTarget=node.addComponent(cc.Label);state.tipTarget.color=label.color.clone();state.tipTarget.enableOutline=label.enableOutline;state.tipTarget.outlineWidth=label.outlineWidth;state.tipTarget.outlineColor=label.outlineColor.clone();state.tipTarget.horizontalAlign=1;
         }
-        state.tipTarget.node.setScale(desired.tipScale,desired.tipScale,1);
+        state.tipTarget.node.setScale(desired.tipScale??1,desired.tipScale??1,1);
+        if(desired.bounds.role==='loading-tip')state.tipTarget.node.setPosition(0,desired.geometry.height/2,0);
       }
       const changedLabels = [];
       for (const [sourceLabel, state, desired] of plans) {
         const label=state.tipTarget??sourceLabel;
-         
-         
+
+
         let changed = false;
         for (const key of ["overflow", "enableWrapText", "cacheMode", ...("font" in desired ? ["font"] : []), ...("outlineWidth" in desired ? ["outlineWidth"] : []), "useSystemFont", "fontFamily", "isBold", "spacingX", "fontSize", "lineHeight", "verticalAlign", "string"]) if (label[key] !== desired[key]) { label[key] = desired[key]; changed = true; }
         if (desired.geometry) {
@@ -1445,8 +2107,8 @@ export function createController(cc, resources, log = {}) {
         state.applied = desired;
         if (changed && label.node.activeInHierarchy !== false) changedLabels.push(sourceLabel);
       }
-       
-       
+
+
       for (const label of changedLabels) {
         (states.get(label)?.tipTarget??label).updateRenderData?.(true);
         if (["almanac-prose","game-tip"].includes(states.get(label)?.applied?.bounds.role)) {
@@ -1454,15 +2116,15 @@ export function createController(cc, resources, log = {}) {
           if (!label.string) transform(label.node,cc)?.setContentSize?.(states.get(label).own.width,0);
         }
       }
-      reflowAlmanac([...richChanged,...changedLabels.filter(label=>almanacRole(label)).map(label=>label.node)]);
-       
-       
+      reflowAlmanac([...richChanged,...changedLabels.filter(label=>almanacRole(label)).map(label=>label.node)],russianPages);
+
+
       const objectiveLayouts=new Set();
       for(const [label,,desired]of plans)if(desired.bounds.role==='objective-prose')for(let n=label.node.parent;n&&!/^(LevelObjectiveScreen|PauseScreen)$/.test(n.name);n=n.parent){const layout=component(n,cc,'Layout');if(layout?.enabled)objectiveLayouts.add(layout);}
       const depth=n=>{let d=0;for(;n;n=n.parent)d++;return d;};
       for(const layout of [...objectiveLayouts].sort((a,b)=>depth(b.node)-depth(a.node)))layout.updateLayout?.(true);
       for(const [label,state,desired] of plans) if(roleFor(label) === "game-tip") layoutTip(label,state,desired,scene);
-      for(const [label,state,desired] of plans)if(desired.bounds.role==='game-tip')rasterTip(label,state,desired);
+      for(const [label,state,desired] of plans)if(['game-tip','loading-tip'].includes(desired.bounds.role))rasterTip(label,state,desired);
       const ownControls = new Set(changedLabels.map(label => states.get(label)?.applied?.bounds.control).filter(control => control?.horizontal));
       for (const control of ownControls) control.layout.updateLayout?.(true);
       releaseControls(present);
@@ -1483,6 +2145,7 @@ export function createController(cc, resources, log = {}) {
       for (const [owner, state] of richStates) restoreRich(owner,state);
       richStates.clear();
       states.clear();
+      reflowAlmanac([]);
       releaseControls(null);
       for(const saved of timerNodes.values())restoreTimerNode(saved);
       restoreTimerOrder([...timerNodes.values()]);
@@ -1492,7 +2155,7 @@ export function createController(cc, resources, log = {}) {
   };
 }
 
- 
+
 async function loadFonts(ctx, resources) {
   const own = ctx.files.own();
   resources.metrics = JSON.parse(await own.readText("assets/fonts/metrics.json"));
@@ -1514,9 +2177,9 @@ async function loadFonts(ctx, resources) {
   if (!cancelled()) resources.custom = true;
 }
 
- 
- 
- 
+
+
+
 async function panelLanguageModule() {
   const entries = globalThis.performance?.getEntriesByType?.("resource") ?? [];
   const url = entries.map(e => e.name).find(n => /\/assets\/i18n-DdDmRoF-\.js(?:[?#]|$)/.test(n));
@@ -1536,8 +2199,8 @@ export function createLanguageController(cc, classes, log = {}) {
     const language = ML.currentLanguage;
     applying = true;
     try {
-       
-       
+
+
       ML.currentLanguage = Number(languages?.EN ?? 0);
       panel.i();
     } finally { ML.currentLanguage = language; applying = false; }
@@ -1558,8 +2221,8 @@ export function createLanguageController(cc, classes, log = {}) {
     applied = true;
     const previous = ML.currentLanguage;
     ML.currentLanguage = index;
-     
-     
+
+
     try {
       const storage = cc.sys?.localStorage;
       const source = storage?.getItem("PvZ2_Settings");
@@ -1569,8 +2232,8 @@ export function createLanguageController(cc, classes, log = {}) {
       }
     } catch (error) { log.warn?.(`Язык применён на этот запуск; настройка языка не сохранена: ${String(error?.message ?? error)}`); }
     englishPanel();
-     
-     
+
+
     const menu = /^(mainScene|worldMapScene|almanacScene|storeScene|awardScene|zenGardenScene)$/i.test(cc.director.getScene()?.name ?? "");
     if (menu && (requestedLanguage === "ru" || previous !== index) && !KeyListener?.isInGame && typeof KeyListener?.RestartScene === "function") {
       try { Promise.resolve(KeyListener.RestartScene()).catch(error => log.warn?.(`Язык применён; обновить меню не удалось: ${String(error?.message ?? error)}`)); }
@@ -1605,10 +2268,10 @@ export default {
     const cc = ctx.engine.getCc();
     const event = cc?.Director?.EVENT_BEFORE_DRAW ?? "director_before_draw";
     if (!cc?.director?.on || !cc?.director?.getScene) throw new Error("Исправление шрифта: недоступен Cocos director");
-     
-    const resources = { custom: false, faces: [], metrics: null, stopped: false, percent: savedPercent(), theme: savedTheme(), bodyTheme:savedChoice(BODY_PREFERENCE_KEY,"shantell"),dialogTheme:savedChoice(DIALOG_PREFERENCE_KEY,"nunito") };
-     
-     
+
+    const resources = { custom: false, faces: [], metrics: null, stopped: false, percent: savedPercent(), fontSlots: readFontSlots(FONT_OPTIONS) };
+
+
     let nativeEngine = ctx.engine;
     const classByName = name => nativeEngine?.getClassByName?.(name) ?? cc.js?.getClassByName?.(name) ?? null;
     const exportByName = (module, name) => {
@@ -1616,11 +2279,16 @@ export default {
       return nativeEngine?.getModuleExport?.(id, name) ?? globalThis.System?.get?.(id)?.[name] ?? null;
     };
     const language = createLanguageController(cc, { MultiLanguage: classByName("MultiLanguage"), LanguageEnum: exportByName("MultiLanguage", "LanguageEnum"), Setting: exportByName("SettingWindow", "Setting"), KeyListener: classByName("KeyListener") }, ctx.log);
-    const resolveNative=()=>({SettingWindow:classByName("SettingWindow"),Players:nativeEngine?.getAllPlayerProperties?.()??exportByName("PlayerProperties","AllPlayerProperties"),profileKey:exportByName("PlayerProperties","UserDataDocument"),PowerupFingers:exportByName("PowerupFingers","PowerupFingers")??classByName("PowerupFingers"),PlantFoodCount:classByName("PlantFoodCount"),SunCount:classByName("SunCount"),LevelPlay:exportByName("levelController","LevelPlay"),CoinCount:classByName("CoinCount"),CoinCollecterInGame:classByName("CoinCollecterInGame"),sounds:exportByName("SoundRescourses","sounds"),Zen:classByName("zenGardenScene"),Commodity:classByName("StoreCommodity"),LnC:exportByName("LnC","LnC")??classByName("LnC"),UIInGame:exportByName("UI","UIInGame")});
+    const resolveNative=()=>({SettingWindow:classByName("SettingWindow"),Players:nativeEngine?.getAllPlayerProperties?.()??exportByName("PlayerProperties","AllPlayerProperties"),profileKey:exportByName("PlayerProperties","UserDataDocument"),PowerupFingers:exportByName("PowerupFingers","PowerupFingers")??classByName("PowerupFingers"),PlantFoodCount:classByName("PlantFoodCount"),SunCount:classByName("SunCount"),LevelPlay:exportByName("levelController","LevelPlay"),CoinCount:classByName("CoinCount"),CoinCollecterInGame:classByName("CoinCollecterInGame"),sounds:exportByName("SoundRescourses","sounds"),Zen:classByName("zenGardenScene"),Commodity:classByName("StoreCommodity"),LnC:exportByName("LnC","LnC")??classByName("LnC"),UIInGame:exportByName("UI","UIInGame"),ShovelUIController:classByName("ShovelUIController")});
     const native={...resolveNative(),resolve:()=>({...resolveNative(),Plant:classByName("Plant"),ImitaterPlant:classByName("ImitaterPlant"),MultiLanguage:classByName("MultiLanguage"),LanguageEnum:exportByName("MultiLanguage","LanguageEnum")})};
     const paid=createPaidController(cc,native,readPowerPreferences(),ctx.log),ui=createUiController(cc,native,ctx.log);
-    const planning=createPlanningController(native,ctx.log);
-    const preview=createFontPreview(cc,resources,ctx.log);
+    native.getGamingSpeed=()=>exportByName("UI","gamingSpeed");
+    native.getSuperSlowed=()=>exportByName("UI","superSlowed");
+    native.getFreePlantFood=()=>exportByName("UI","freePF");
+    native.resolveAutoCollect=()=>({dropping:classByName("dropping"),droppingInZen:classByName("droppingInZen"),LevelPlay:exportByName("levelController","LevelPlay"),UIInGame:exportByName("UI","UIInGame"),PlantFoodCount:classByName("PlantFoodCount")});
+    const tipParty=createTipPartyController(cc),autoCollect=createAutoCollectController(cc,native,ctx.log);
+    const planning=createPlanningController(native,ctx.log),speed=createSpeedController(cc,native,ctx.log),speedView=createSpeedControlView(speed),settingsView=createSettingsControlView();
+    const preview=createFontPreview(cc,resources,ctx.log,{slots:FONT_SLOTS,options:FONT_OPTIONS});
     let controller = null, listener = null, disposed = false;
     const cleanup = () => {
       if (disposed) return;
@@ -1628,7 +2296,7 @@ export default {
       nativeEngine = null;
       if (listener) cc.director.off(event, listener);
       controller?.dispose();
-      preview.dispose();ui.dispose();paid.dispose();planning.dispose();
+      tipParty.dispose();autoCollect.dispose();preview.dispose();ui.dispose();paid.dispose();planning.dispose();settingsView.dispose();speedView.dispose();speed.dispose();
       language.dispose();
       for (const face of resources.faces) globalThis.document?.fonts?.delete?.(face);
       resources.faces.length = 0;
@@ -1657,17 +2325,17 @@ export default {
         controller = createController(cc, resources, ctx.log);
         const reported = new Set();
         listener = () => {
-          for (const [name, helper] of [["язык",language],["интерфейс",ui],["усиления",paid],["планирование",planning],["шрифт",controller]]) {
+          for (const [name, helper] of [["язык",language],["уведомления",tipParty],["интерфейс",ui],["усиления",paid],["планирование",planning],["скорость",speed],["автоподбор",autoCollect],["шрифт",controller]]) {
             try { helper.scan(); }
             catch (error) {
-               
+
               if (!reported.has(name)) { reported.add(name); ctx.log.warn(`Исправление ${name}: ${String(error?.message ?? error)}`); }
             }
           }
         };
         cc.director.on(event, listener);
-        session = { controller, resources, cleanup, language, paid, ui, planning, preview, bindEngine: engine => { nativeEngine = engine; } };
-        ctx.log.info(`Русский шрифт ${VERSION}: ${resources.custom ? (resources.theme === "classic" ? "Balsamiq Sans" : (resources.theme === "ruslan" ? "Ruslan Display" : "Rubik Bubbles")) : "Arial"}; размер ${resources.percent}%; исправление до отрисовки кадра.`);
+        session = { controller, resources, cleanup, language, paid, ui, planning, speed, speedView, settingsView, preview, autoCollect, bindEngine: engine => { nativeEngine = engine; } };
+        ctx.log.info(`Русский шрифт ${VERSION}: пять исходных шрифтов; размер ${resources.percent}%; исправление до отрисовки кадра.`);
       },
       dispose: cleanup
     });
@@ -1684,17 +2352,22 @@ export default {
       try { globalThis.localStorage?.setItem(PREFERENCE_KEY, String(current.resources.percent)); } catch (_) {
         ctx.log.warn("Размер шрифта изменён на текущий запуск; сохранить настройку не удалось.");
       }
-       
+
     };
-    let pricesExpanded=false;
-    ctx.controls?.definePanel?.({
+    let pricesExpanded=false,autoExpanded=false;
+    ctx.controls?.definePanel?.(current.settingsView.wrapPanel({
       title: "Русский шрифт и размеры",
       description: "Автоматическая подгонка работает при любом выбранном размере. Настройка сохраняется отдельно от прогресса игры.",
       groups: [{ title: "Оформление", items: [
         {type:"select",key:"startup-language",label:"Язык запуска по умолчанию",description:"Применяется после полного перезапуска игры. Для русского языка нужен включённый русификатор.",options:[{value:"ru",label:"Русский"},{value:"en",label:"English"}],getValue:()=>current.language.startupLanguage,setValue:value=>current.language.setStartupLanguage(value)},
-        {type:"select",key:"font-style",label:"Основной шрифт",options:FONT_OPTIONS,getValue:()=>current.resources.theme,setValue:v=>{if(v in THEMES){current.resources.theme=v;globalThis.localStorage?.setItem(FONT_PREFERENCE_KEY,v);}}},
-        ...[{key:"body-style",label:"Описания и советы",property:"bodyTheme",storage:BODY_PREFERENCE_KEY},{key:"dialog-style",label:"Реплики в диалогах",property:"dialogTheme",storage:DIALOG_PREFERENCE_KEY}].map(item=>({type:"select",key:item.key,label:item.label,options:[{label:"Как основной",value:"heading"},...FONT_OPTIONS],getValue:()=>current.resources[item.property],setValue:value=>{if(value==="heading"||value in THEMES){current.resources[item.property]=value;globalThis.localStorage?.setItem(item.storage,value);}}})),
-        {type:"action",key:"reset-style",label:"Вернуть рекомендуемое оформление",onClick:()=>{for(const [property,key,value] of [["theme",FONT_PREFERENCE_KEY,"ruslan"],["bodyTheme",BODY_PREFERENCE_KEY,"shantell"],["dialogTheme",DIALOG_PREFERENCE_KEY,"nunito"]]){current.resources[property]=value;globalThis.localStorage?.setItem(key,value);}}}
+        ...FONT_SLOTS.map(slot=>({type:"select",key:"font-slot-"+slot.key,label:slot.label,description:slot.description,options:FONT_OPTIONS,getValue:()=>fontSlotChoice(current.resources,slot.key),setValue:value=>{
+          try { setFontSlot(current.resources,slot.key,value,FONT_OPTIONS); }
+          catch (_) { ctx.log.warn("Шрифт изменён на текущий запуск; сохранить настройку не удалось."); }
+        }})),
+        {type:"action",key:"reset-style",label:"Вернуть рекомендуемое оформление",onClick:()=>{
+          try { resetFontSlots(current.resources); }
+          catch (_) { ctx.log.warn("Рекомендуемые шрифты применены; сохранить настройку не удалось."); }
+        }}
 
       ] }, { title: "Размер текста", items: [
         { type: "number", key: "size-percent", label: "Общий размер, %", description: "Рекомендуется 68. Длинные заголовки и подписи переносятся, если в блоке хватает высоты.", min: 50, max: 80, step: 1, getValue: () => current.resources.percent, setValue: setPercent },
@@ -1703,12 +2376,18 @@ export default {
         {type:"select",key:"powerup-mode",label:"Режим читов",options:[{label:"Без читов",value:"off"},{label:"Разрешить читы",value:"native"},{label:"За монеты",value:"coins"}],getValue:()=>current.paid.preferences.mode,setValue:v=>{current.paid.setMode(v);pricesExpanded=false;}},
         {type:"toggle",key:"show-prices",label:"Настроить стоимость усилений",visible:()=>current.paid.preferences.mode==="coins",getValue:()=>pricesExpanded,setValue:v=>{pricesExpanded=!!v;}},
         ...Object.entries({snow:"Снежки",toss:"Отбрасывание",zap:"Молния",flame:"Огонь",cherry:"Вишенка",food:"Одна подкормка"}).map(([key,label])=>({type:"number",key:"price-"+key,label:label+" — монеты",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,min:1,max:2147483647,step:1,getValue:()=>current.paid.preferences.prices[key],setValue:v=>current.paid.setPrice(key,v)})),
-        {type:"action",key:"reset-prices",label:"Вернуть цены по умолчанию",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,onClick:()=>current.paid.resetPrices()}
-      ]},{title:"Исправления игры",items:[
-        {type:"toggle",key:"planning-boost-fix",label:"Убирать копии от начального буста до старта раунда",description:"Во время подготовки буст из сада или за алмазы расходуется по игровой логике, но не создаёт копии. После запуска раунда копии и удобрение листиком действуют как обычно.",getValue:()=>current.planning.enabled,setValue:v=>current.planning.setEnabled(v)}
+        {type:"action",key:"reset-prices",label:"Вернуть цены по умолчанию",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,onClick:()=>current.paid.resetPrices()},
+        {type:"toggle",key:"show-auto-collect",label:"Настроить автоподбор предметов",description:"Открывает выбор предметов. Скрытие настроек сохраняет выбранные галочки и не отключает автоподбор.",getValue:()=>autoExpanded,setValue:v=>{autoExpanded=!!v;}},
+        {type:"toggle",key:"auto-collect-other",label:"Автоподбор прочего дропа",visible:()=>autoExpanded,description:"Монеты, алмазы, ростки и билеты. Солнце и листики подкормки включаются отдельно. Работает также для монет и алмазов в саду.",getValue:()=>current.autoCollect.preferences.other,setValue:v=>current.autoCollect.setEnabled("other",v)},
+        {type:"toggle",key:"auto-collect-sun",label:"Автоподбор солнца",visible:()=>autoExpanded,description:"Собирает обычное солнце штатным способом. Опасные солнечные бомбы не активирует.",getValue:()=>current.autoCollect.preferences.sun,setValue:v=>current.autoCollect.setEnabled("sun",v)},
+        {type:"toggle",key:"auto-collect-plantfood",label:"Автоподбор листиков подкормки",visible:()=>autoExpanded,description:"Собирает листики, когда в банке есть место. Подкормку на растения не расходует.",getValue:()=>current.autoCollect.preferences.plantfood,setValue:v=>current.autoCollect.setEnabled("plantfood",v)}
+      ]},{title:"Улучшения игры",items:[
+        {type:"toggle",key:"planning-boost-fix",label:"Убирать копии от начального буста до старта раунда",description:"Во время подготовки буст из сада или за алмазы расходуется по игровой логике, но не создаёт копии. После запуска раунда копии и удобрение листиком действуют как обычно.",getValue:()=>current.planning.enabled,setValue:v=>current.planning.setEnabled(v)},
+        {type:"toggle",key:"custom-game-speed",label:"Изменить стандартный множитель ускорения",description:"Заменяет ускорение штатной кнопки выбранным множителем. Пока ускорение выключено, скорость остаётся обычной.",getValue:()=>current.speed.enabled,setValue:v=>current.speed.setEnabled(v)},
+        {type:"number",key:"game-speed-multiplier",label:"Множитель ускорения, ×",description:"От 1× до 10× с шагом 0.1. Можно вводить точку или запятую и подтверждать Enter. При включённом ускорении новое значение применяется сразу, при обычной скорости — после нажатия кнопки ускорения. Пауза и автоматическое отключение сохраняются.",visible:()=>current.speed.enabled,min:1,max:10,step:0.1,getValue:()=>current.speed.multiplier,setValue:v=>current.speed.setMultiplier(v)}
       ]}]
-    });
-    current.preview.start();
+    }));
+    current.preview.start();current.speedView.start();
     if (!current.resources.custom) ctx.ui.toast("Встроенный шрифт не загружен; используется Arial. Подробности в Log.", "warning");
   }
 };

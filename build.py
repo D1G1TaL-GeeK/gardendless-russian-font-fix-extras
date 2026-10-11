@@ -7,8 +7,8 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parent
-MODULES = ("paid-powerups.mjs", "layout-ui.mjs", "font-preview.mjs", "planning-boost.mjs")
-DOCS = ("README.md", "README.ru.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "PUBLISHING.md")
+MODULES = ("font-slots.mjs", "paid-powerups.mjs", "layout-ui.mjs", "font-preview.mjs", "planning-boost.mjs", "game-speed.mjs", "settings-view.mjs", "tip-party.mjs", "auto-collect.mjs", "text-fit.mjs")
+DOCS = ("README.md", "README.ru.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "PUBLISHING.md", "CHANGELOG.md", "RELEASE-1.0.2.md")
 
 
 def bundle():
@@ -25,8 +25,10 @@ def bundle():
 
 def payload():
     manifest = json.loads((ROOT / "pack.json").read_text(encoding="utf-8"))
-    if manifest["version"] != "1.0.1" or manifest["js"]["entry"] != "scripts/main.mjs":
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", manifest["version"]) or manifest["js"]["entry"] != "scripts/main.mjs":
         raise ValueError("Unexpected version or entry point")
+    if f'const VERSION = "{manifest["version"]}";' not in (ROOT / "src/main.mjs").read_text(encoding="utf-8"):
+        raise ValueError("Source and manifest versions differ")
     result = {"pack.json": (ROOT / "pack.json").read_bytes(), "scripts/main.mjs": bundle()}
     for name in DOCS:
         result[name] = (ROOT / name).read_bytes()
@@ -70,9 +72,14 @@ def main():
     for folder in ("src", "tests"):
         for path in sorted((ROOT / folder).glob("*.mjs")):
             source_files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
+    source_files["SCREENSHOTS.md"] = (ROOT / "SCREENSHOTS.md").read_bytes()
+    for path in sorted((ROOT / "docs").rglob("*")):
+        if path.is_file() and path.suffix in (".png", ".md", ".html", ".css", ".js", ""):
+            source_files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
+    version = json.loads((ROOT / "pack.json").read_text(encoding="utf-8"))["version"]
     entries = (
-        ("Russian_Font_Display_Fix_Extras_1.0.1.zip", release_files),
-        ("Russian_Font_Display_Fix_Extras_1.0.1_Source.zip", source_files),
+        (f"Russian_Font_Display_Fix_Extras_{version}.zip", release_files),
+        (f"Russian_Font_Display_Fix_Extras_{version}_Source.zip", source_files),
     )
     lines = []
     for name, files in entries:

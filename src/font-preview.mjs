@@ -1,18 +1,18 @@
- 
-export function createFontPreview(cc,resources={},log={}) {
+export function createFontPreview(cc,resources={},log={},config={}) {
   const doc=globalThis.document;
   if(!doc?.createElement)return {start(){},dispose(){}};
   let root,canvas,renderRoot,camera,texture,labels=[],signature='',pending=false,disposed=false,warned=false,observer,started=false;
-  const width=860,height=580,layer=1<<24;
+  const slots=config.slots??[],options=config.options??[];
+  const width=860,height=slots.length*196,layer=1<<24;
   const buttonSpacing=new Map();
   function attach(){
     if(disposed)return;
     for(const button of doc.querySelectorAll('button'))if(['Вернуть рекомендуемое оформление','Вернуть стандартный размер','Вернуть цены по умолчанию'].includes(button.getAttribute('aria-label')??button.textContent.trim())){if(!buttonSpacing.has(button))buttonSpacing.set(button,[button.style.marginTop,button.style.marginBottom]);button.style.marginTop='16px';button.style.marginBottom='6px';}
-    const select=doc.querySelector('select[aria-label="Основной шрифт"]');if(!select?.isConnected||root?.isConnected)return;
+    const select=[...doc.querySelectorAll('select')].find(node=>node.getAttribute('aria-label')===slots[0]?.label);if(!select?.isConnected||root?.isConnected||!slots.length)return;
     root=doc.createElement('div');root.setAttribute('data-rff-font-preview','');root.style.cssText='margin-top:14px;width:100%;border-radius:12px;overflow:hidden;background:#102b25;border:1px solid #476158';
     const title=doc.createElement('p');title.textContent='Образцы выбранных шрифтов';title.style.cssText='margin:10px 14px;color:#fff;font:600 14px system-ui';
     canvas=doc.createElement('canvas');canvas.width=width;canvas.height=height;canvas.style.cssText='display:block;width:100%;height:auto;background:#102b25';
-    const note=doc.createElement('p');note.textContent='Заголовок, описание и диалог рисует игровой движок. Выбор применяется сразу.';note.style.cssText='margin:10px 14px;color:#c9d6d2;font:12px system-ui';root.append(title,canvas,note);
+    const note=doc.createElement('p');note.textContent='Пять образцов соответствуют пяти исходным шрифтам игры. Их рисует игровой движок. Выбор применяется сразу.';note.style.cssText='margin:10px 14px;color:#c9d6d2;font:12px system-ui';root.append(title,canvas,note);
     const row=select.closest('.gp-setting-row,.gp-form-row,.gp-field-row')??select.parentElement;row?.parentElement?.appendChild(root);signature='';
   }
   function destroyRender(){renderRoot?.destroy?.();texture?.destroy?.();renderRoot=null;camera=null;texture=null;labels=[];signature='';pending=false;}
@@ -25,18 +25,15 @@ export function createFontPreview(cc,resources={},log={}) {
       const node=new cc.Node('FontSample');node.parent=renderRoot;node.layer=layer;node.__rffOwnedFont=true;node.setPosition(0,y,0);node.addComponent(cc.UITransform).setContentSize(width-64,rows);
       const l=node.addComponent(cc.Label);l.string=text;l.useSystemFont=true;l.fontSize=size;l.lineHeight=size*1.28;l.overflow=1;l.enableWrapText=false;l.horizontalAlign=0;l.verticalAlign=1;l.enableOutline=true;l.outlineWidth=3;l.outlineColor=new cc.Color(0,0,0,255);l.color=color;labels.push({label:l,role,base:size,height:rows});
     }
-    label('Основной шрифт',256,30,66,'caption');label('Древний Египет\nТёмные века',160,52,164,'heading',new cc.Color(255,221,92,255));
-    label('Описания и советы',55,30,66,'caption');label('Собирайте солнце и защищайте сад.\nПосадите подсолнухи в несколько рядов.',-48,42,164,'body');
-    label('Реплики в диалогах',-147,30,66,'caption');label('Эй, сосед! Зомби уже близко.\nПриготовь растения и подкормку!',-225,42,124,'dialog');
+    slots.forEach((slot,index)=>{const top=height/2-index*196;label(slot.label,top-35,28,64,'caption');label(slot.sample,top-122,42,130,slot.key,index===0||slot.key==='terror'?new cc.Color(255,221,92,255):undefined);});
   }
   function prepare(){
     if(disposed)return;attach();const visible=canvas?.isConnected&&canvas.getClientRects().length,scene=cc.director?.getScene?.();if(!visible||!scene){if(camera)camera.enabled=false;return;}
     try{
       if(!renderRoot||renderRoot.isValid===false||renderRoot.parent!==scene)makeRenderer(scene);
-      const key=JSON.stringify([resources.custom,resources.theme,resources.bodyTheme,resources.dialogTheme,resources.percent]);if(key===signature)return;signature=key;
-      const choices={heading:resources.theme??'ruslan',body:resources.bodyTheme??'pangolin',dialog:resources.dialogTheme??'shantell'},families={classic:'GardendlessRussianBalsamiqBold',bubbles:'GardendlessRussianRubikBubbles',ruslan:'GardendlessRussianRuslan'};
+      const key=JSON.stringify([resources.custom,resources.fontSlots,resources.percent]);if(key===signature)return;signature=key;
       const measure=doc.createElement('canvas').getContext('2d');
-      for(const sample of labels){let choice=choices[sample.role];if(choice==='heading')choice=choices.heading;const l=sample.label;l.fontFamily=sample.role==='caption'?'Arial':resources.custom?(choice==='classic'&&sample.role!=='heading'?'GardendlessRussianBalsamiqRegular':families[choice]??'GardendlessRussian'+choice):'Arial';measure.font=`100px "${l.fontFamily}"`;const lines=l.string.split('\n'),units=Math.max(...lines.map(text=>measure.measureText(text).width/100));l.fontSize=Math.floor(Math.min(sample.base*(sample.role==='caption'?1:(resources.percent??68)/68),(width-76)/(units*1.04),(sample.height-10)/(1.75+(lines.length-1)*1.28)));l.lineHeight=l.fontSize*1.28;l.updateRenderData?.(true);}
+      for(const sample of labels){const slot=slots.find(item=>item.key===sample.role),choice=resources.fontSlots?.[slot?.key]??slot?.fallback,l=sample.label;l.fontFamily=sample.role==='caption'||!resources.custom?'Arial':options.find(option=>option.value===choice)?.family??'Arial';measure.font=`100px "${l.fontFamily}"`;const lines=l.string.split('\n'),units=Math.max(...lines.map(text=>measure.measureText(text).width/100)),smallScript=resources.custom&&sample.role==='ashley'&&choice==='caveat',ratio=smallScript?1.17:1.28,factor=smallScript?1.20:1;l.fontSize=Math.floor(Math.min(sample.base*(sample.role==='caption'?1:(resources.percent??68)/68)*factor,(width-76)/(units*1.04),(sample.height-10)/((smallScript?1.35:1.75)+(lines.length-1)*ratio)));l.lineHeight=l.fontSize*ratio;l.updateRenderData?.(true);}
       camera.enabled=true;pending=true;
     }catch(error){if(!warned){warned=true;log.warn?.('Образцы шрифтов: '+String(error?.message??error));}}
   }

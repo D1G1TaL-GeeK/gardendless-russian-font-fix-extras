@@ -1,10 +1,14 @@
- 
- 
 import {createPaidController,readPowerPreferences,DEFAULT_PRICES} from "./paid-powerups.mjs";
 import {createFontPreview} from "./font-preview.mjs";
 import {createUiController} from "./layout-ui.mjs";
 import {createPlanningController} from "./planning-boost.mjs";
-const VERSION = "1.0.1";
+import {createSpeedController,createSpeedControlView} from "./game-speed.mjs";
+import {createSettingsControlView} from "./settings-view.mjs";
+import {createTipPartyController} from "./tip-party.mjs";
+import {createAutoCollectController} from "./auto-collect.mjs";
+import {FONT_SLOTS,readFontSlots,setFontSlot,resetFontSlots,fontSlotChoice,fontSlotFamily,originalFontSlot,fontOpticalFactor} from "./font-slots.mjs";
+import {authoredLines,balancedLines} from "./text-fit.mjs";
+const VERSION = "1.0.2";
 const RUSSIAN = /[\u0401\u0410-\u044f\u0451]/;
 const CLASSIC_FAMILY = { bold: "GardendlessRussianBalsamiqBold", regular: "GardendlessRussianBalsamiqRegular" };
 export const FONT_OPTIONS = [
@@ -13,22 +17,13 @@ export const FONT_OPTIONS = [
  {value:"ruslan",label:"Ruslan Display",family:"GardendlessRussianRuslan",file:"RuslanDisplay-Regular.ttf"},
  ...[["shantell","Shantell Sans Bold","ShantellSans-Bold.ttf"],["pangolin","Pangolin","Pangolin-Regular.ttf"],["underdog","Underdog","Underdog-Regular.ttf"],["neucha","Neucha","Neucha.ttf"],["lobster","Lobster","Lobster-Regular.ttf"],["caveat","Caveat Bold","Caveat-Bold.ttf"],["seymour","Seymour One","SeymourOne-Regular.ttf"],["nunito","Nunito ExtraBold","Nunito-ExtraBold.ttf"],["rubik","Rubik SemiBold","Rubik-SemiBold.ttf"],["comfortaa","Comfortaa Bold","Comfortaa-Bold.ttf"],["ptsanscaption","PT Sans Caption Bold","PTSansCaption-Bold.ttf"],["marmelad","Marmelad","Marmelad-Regular.ttf"]].map(([value,label,file])=>({value,label,file,family:"GardendlessRussian"+value}))
 ];
-const THEMES=Object.fromEntries(FONT_OPTIONS.map(o=>[o.value,{bold:o.family,regular:CLASSIC_FAMILY.regular}]));
-const FONT_PREFERENCE_KEY = "local.gardendless.russian-font-fix.font-style.v1";
-const BODY_PREFERENCE_KEY = "local.gardendless.russian-font-fix.body-style.v1";
-const DIALOG_PREFERENCE_KEY = "local.gardendless.russian-font-fix.dialog-style.v1";
 const STARTUP_LANGUAGE_KEY = "local.gardendless.russian-font-fix.startup-language.v1";
 export function readStartupLanguage(storage) {
   try { return (storage ?? globalThis.localStorage)?.getItem(STARTUP_LANGUAGE_KEY) === "en" ? "en" : "ru"; }
   catch (_) { return "ru"; }
 }
-function styleTheme(resources, style) {
-  const choice = style === "dialog" ? (resources.dialogTheme ?? "nunito") : style === "regular" ? (resources.bodyTheme ?? "shantell") : "heading";
-  return choice === "heading" ? (resources.theme ?? "ruslan") : choice;
-}
-const fontFor = (resources,style) => resources.custom && style === "compact" ? CLASSIC_FAMILY.bold : resources.custom ? styleTheme(resources,style) === "classic" && style !== "bold" ? CLASSIC_FAMILY.regular : (THEMES[styleTheme(resources,style)] ?? THEMES.bubbles).bold : "Arial";
-function savedChoice(key, fallback) { try { const value=globalThis.localStorage?.getItem(key); return (value==="heading"||value in THEMES) ? value : fallback; } catch (_) { return fallback; } }
-function savedTheme() { return savedChoice(FONT_PREFERENCE_KEY,"ruslan"); }
+const styleTheme = fontSlotChoice;
+const fontFor = (resources,style) => fontSlotFamily(resources,style,FONT_OPTIONS);
 const STYLE_KEYS = ["font", "useSystemFont", "fontFamily", "fontSize", "lineHeight", "spacingX", "isBold", "enableWrapText", "overflow", "cacheMode", "verticalAlign", "outlineWidth"];
 const SIZE_RATIO = 0.68;
 const PREFERENCE_KEY = "local.gardendless.russian-font-fix.size-percent.v1";
@@ -94,7 +89,7 @@ function measurer(resources) {
     }
     if (!(width > 0)) {
       const theme = styleTheme(resources,style);
-      const m = resources.custom ? resources.metrics?.[style === "compact" ? "bold" : theme !== "classic" ? theme : style === "bold" ? "bold" : "regular"] : null;
+      const m = resources.custom ? resources.metrics?.[theme === "classic" ? "bold" : theme] : null;
       width = [...text].reduce((sum, c) => sum + (m ? number(m.widths[c], 700) / m.unitsPerEm : 0.68), 0);
     }
     if (cache.size >= 2048) cache.clear();
@@ -122,9 +117,9 @@ function russianTime(text) {
     .replace(/(\d+)\s*m\b/gi,"$1 мин.").replace(/(\d+)\s*s\b/gi,"$1 с.");
 }
 
- 
+
 export function createController(cc, resources, log = {}) {
-  const states = new Map(), controls = new Map(), richStates = new Map(), timerNodes = new Map(), tipNodes=new Map(), measure = measurer(resources);
+  const states = new Map(), controls = new Map(), richStates = new Map(), almanacLayouts = new Map(), timerNodes = new Map(), tipNodes=new Map(), measure = measurer(resources);
   let disposed = false, warned = false, affected = 0;
   const ancestor = (node, pattern) => { for (let n=node;n;n=n.parent) if(pattern.test(n.name ?? "")) return n; return null; };
 
@@ -160,17 +155,17 @@ export function createController(cc, resources, log = {}) {
     if (!role) return null;
     const prose = role === "almanac-prose", value = role === "almanac-stat-value";
     const nativeNumeric = value && !RUSSIAN.test(state.source);
-    const style = prose ? "regular" : "bold";
+    const style = styleFor(label,state);
     const card = label.node.parent;
     const family = value && /^семейство(?:\s|$)/iu.test(sourceOf(component(card.children?.find(n=>n.name === "NAME"),cc,"Label")));
-     
-     
+
+
     const familyWidth = (number(transform(card,cc)?.width,800) * 0.28 - number(label.node.position?.x) - 12) / positive(label.node.scale?.x);
     const source = family ? state.source.trim().replace(/^Семейство\s+/iu,"") : state.source.trim();
     const width = family ? Math.min(state.own.width,familyWidth) : state.own.width, available = Math.max(1, width - 16);
     let size = Math.floor(nativeNumeric ? number(state.original.fontSize,94.5)*number(resources.percent,68)/100 : baseSize(label, state));
-     
-     
+
+
     if (!prose && !nativeNumeric) size = Math.min(size, Math.max(1, Math.floor(available / Math.max(1, measure(source, style) * 1.04))));
     const lineHeight = Math.round(size * LINE_RATIO * 10) / 10;
     const lines = prose ? wrapWords(source,available / 1.04,size,measure,style) : [source];
@@ -185,26 +180,51 @@ export function createController(cc, resources, log = {}) {
     const width = state.own.width, height = state.own.height, source = state.source.trim();
     const usable = Math.max(1,width - (label.enableOutline ? number(label.outlineWidth,2)*2 : 0) - 8);
     let size = Math.floor(baseSize(label,state));
-    const longest = Math.max(1,...source.split(/\s+/).map(word=>measure(word,"bold")));
+    const longest = Math.max(1,...source.split(/\s+/).map(word=>measure(word,styleFor(label,state))));
     size = Math.min(size,Math.floor(usable / (longest*1.04)));
     while (size > 1) {
-      const lines = wrapWords(source,usable/1.04,size,measure,"bold");
+      const lines = wrapWords(source,usable/1.04,size,measure,styleFor(label,state));
       const fitsHeight = (lines.length - 1) * size * LINE_RATIO + size * 1.35 <= height - 4;
       if (fitsHeight && (lines.length <= 2 || size <= 22)) break;
       size--;
     }
-    const lines = wrapWords(source,usable/1.04,size,measure,"bold");
-    return { fontFamily: fontFor(resources,"bold"), useSystemFont: true, fontSize: size, lineHeight: Math.round(size*LINE_RATIO*10)/10,
+    const lines = wrapWords(source,usable/1.04,size,measure,styleFor(label,state));
+    return { fontFamily: fontFor(resources,styleFor(label,state)), useSystemFont: true, fontSize: size, lineHeight: Math.round(size*LINE_RATIO*10)/10,
       spacingX: 0, isBold: false, enableWrapText: false, overflow: 1, verticalAlign: 1, cacheMode: 0, string: lines.join("\n"),
-      bounds: { width, height, maxSize: Infinity, multiline: true, fixed: true, role: "medal-title" }, geometry: { width,height }, style: "bold", lines };
+      bounds: { width, height, maxSize: Infinity, multiline: true, fixed: true, role: "medal-title" }, geometry: { width,height }, style:styleFor(label,state), lines };
   }
 
-  function reflowAlmanac(nodes) {
-     
-     
+  function reflowAlmanac(nodes, pages = new Set()) {
     const layouts = new Set();
+    const restoreLayout = (layout, saved) => {
+      if (layout.isValid !== false && layout.node?.isValid !== false) {
+        layout.paddingTop = saved.paddingTop; layout.paddingBottom = saved.paddingBottom; layout.spacingY = saved.spacingY;
+        layouts.add(layout);
+      }
+    };
+    for (const [layout, saved] of almanacLayouts) if (!pages.has(almanacPage(layout.node))) {
+      restoreLayout(layout, saved); almanacLayouts.delete(layout);
+    }
+    for (const page of pages) {
+      const visit = node => {
+        if (ancestor(node, /^Introduction$/) && /^(texts|content|elements)$/.test(node.name)) {
+          const layout = component(node, cc, "Layout");
+          if (layout?.enabled) {
+            layouts.add(layout);
+            if (node.name !== "elements") {
+              let saved = almanacLayouts.get(layout);
+              if (!saved) { saved = { paddingTop: layout.paddingTop, paddingBottom: layout.paddingBottom, spacingY: layout.spacingY }; almanacLayouts.set(layout, saved); }
+              if (node.name === "texts") { layout.paddingTop = saved.paddingTop + 32; layout.spacingY = saved.spacingY + 22; }
+              else layout.paddingBottom = saved.paddingBottom + 20;
+            }
+          }
+        }
+        for (const child of node.children ?? []) visit(child);
+      };
+      visit(page);
+    }
     for (const node of nodes) for (let n = node.parent; n && almanacPage(n); n = n.parent) {
-      if (n.name === "texts" || n.name === "content") {
+      if (/^(texts|content|elements)$/.test(n.name)) {
         const layout = component(n, cc, "Layout");
         if (layout?.enabled) layouts.add(layout);
       }
@@ -231,7 +251,8 @@ export function createController(cc, resources, log = {}) {
         state = { original: Object.fromEntries(keys.map(k=>[k,owner[k]])), source: String(owner.string ?? ""), applied: null };
         richStates.set(owner,state);
       } else if (owner.string !== state.applied?.string) state.source = String(owner.string ?? "");
-      const style = ancestor(owner.node,/^NPC_Controller$/) ? "dialog" : "regular";
+      if(owner.font && owner.font!==state.original.font)state.original.font=owner.font;
+      const style = originalFontSlot(state.original.font,owner.node,state.original.fontFamily);
       const size = Math.floor(number(state.original.fontSize,60) * number(resources.percent,68) / 100 * opticalFactor(style));
       const desired = { useSystemFont: true, fontFamily: fontFor(resources,style), fontSize: size, lineHeight: Math.round(size * LINE_RATIO * 10)/10,
         maxWidth: almanacPage(owner.node) ? number(transform(owner.node.parent,cc)?.width, number(state.original.maxWidth,1790)) : number(state.original.maxWidth) || number(transform(owner.node,cc)?.width,800), string: state.source.trim() };
@@ -255,9 +276,9 @@ export function createController(cc, resources, log = {}) {
     if (!state) {
       const ui = transform(label.node, cc);
       state = { source: String(label.string ?? ""), original: Object.fromEntries(STYLE_KEYS.map(k => [k, label[k]])), own: { width: number(ui?.width ?? ui?.contentSize?.width), height: number(ui?.height ?? ui?.contentSize?.height) }, position: { x: number(label.node.position?.x), y: number(label.node.position?.y), z: number(label.node.position?.z) }, applied: null };
-       
-       
-      if (Object.values(THEMES).some(theme => Object.values(theme).includes(label.fontFamily)) || almanacRole(label)?.startsWith("almanac-stat")) {
+
+
+      if (FONT_OPTIONS.some(option => option.family === label.fontFamily) || label.fontFamily === CLASSIC_FAMILY.regular || almanacRole(label)?.startsWith("almanac-stat")) {
         const templates = [...states.entries()].filter(([source,s]) => source.node.name === label.node.name && roleFor(source) === roleFor(label) && s.applied?.fontFamily === label.fontFamily && s.applied?.fontSize === label.fontSize && s.applied?.lineHeight === label.lineHeight);
         if (templates.length && templates.every(([,s])=>s.original.fontSize === templates[0][1].original.fontSize)) {
           state.original = { ...templates[0][1].original };
@@ -266,6 +287,7 @@ export function createController(cc, resources, log = {}) {
       }
       states.set(label, state);
     } else if (state.applied) {
+      if (label.font && label.font !== state.original.font) state.original.font=label.font;
       if (label.string !== state.applied.string) state.source = String(label.string ?? "");
       for (const key of ["fontSize", "lineHeight"]) {
         if (label[key] !== state.applied[key]) state.original[key] = label[key];
@@ -285,8 +307,8 @@ export function createController(cc, resources, log = {}) {
   function prepareTipRoot(root){
     const saved=rememberTip(root);let canvas=null,masked=false;
     for(let n=root.parent;n;n=n.parent){if(component(n,cc,'Canvas')||n.name==='Canvas'){canvas=n;break;}if(component(n,cc,'Mask'))masked=true;}
-     
-     
+
+
     if(canvas&&masked){const p=root.worldPosition.clone(),s=root.worldScale.clone(),cs=canvas.worldScale;root.parent=canvas;root.setWorldPosition(p);root.setScale(s.x/positive(cs.x),s.y/positive(cs.y),s.z/positive(cs.z));saved.reparented=true;}
     if(canvas&&root.parent===canvas&&root.activeInHierarchy!==false&&root.getSiblingIndex()<canvas.children.length-1){root.setSiblingIndex(canvas.children.length-1);saved.reordered=true;}
   }
@@ -312,9 +334,9 @@ export function createController(cc, resources, log = {}) {
     frame?.destroy?.();texture?.destroy?.();image?.destroy?.();state.tipRaster=null;
   }
   function rasterTip(label,state,desired){
-     
-     
-     
+
+
+
     if(!globalThis.document||!cc.ImageAsset||!cc.Texture2D||!cc.SpriteFrame)return;
     const target=state.tipTarget,color=target.color;
     const key=JSON.stringify([desired.fontFamily,desired.fontSize,desired.lineHeight,desired.string,desired.geometry,color.r,color.g,color.b,color.a,resources.percent,globalThis.devicePixelRatio]);
@@ -339,6 +361,7 @@ export function createController(cc, resources, log = {}) {
   }
   function restore(label, state) {
     releaseTipRaster(state);
+    if(state.counterPill){const saved=tipNodes.get(state.counterPill);if(saved?.size&&state.counterPill.isValid!==false)transform(state.counterPill,cc)?.setContentSize(...saved.size);tipNodes.delete(state.counterPill);state.counterPill=null;}
     if(state.tipTarget){state.tipTarget.node?.destroy?.();state.tipTarget=null;if(label.isValid!==false&&label.node)label.enabled=state.tipEnabled;}
     if (label.isValid === false || !label.node || label.node.isValid === false) return;
     const current = String(label.string ?? "");
@@ -355,11 +378,14 @@ export function createController(cc, resources, log = {}) {
     const almanac = almanacRole(label);
     if (almanac) return almanac;
     const name = label.node.name ?? "";
+    if(name === "Description" && ancestor(label.node,/^(ExitSure|RestartSure)$/) && ancestor(label.node,/^PauseScreen$/))return "pause-confirm";
     if(name === "Title" && label.node.parent?.name === "windowCommonBorder") return "window-title";
     if(ancestor(label.node,/^(?:LevelTaskCount|LevelTaskDisplayer)(?:\d+)?$/i)) return "task-count";
     if (name === "GameLoseTip") return "lose-tip";
     if (name === "GamingWarn" || ancestor(label.node,/^GamingWarn$/)) return "warning";
     if (name === "Label" && label.node.parent?.name === "GamingTips") return "game-tip";
+    if (name === "Label" && label.node.parent?.name === "LoaderFlower") return "loading-tip";
+    if (name === "ToolTip" && label.node.parent?.name === "LocalLevelNode" && ancestor(label.node,/^FanmadeLevelWindow$/)) return "fanmade-local";
     if ((ancestor(label.node,/^TicketCount$/) && label.node.parent?.name === "TicketCountDown") || /^истекает\s+через/iu.test(sourceOf(label).trim())) return "ticket-expiry";
     if (label.node.name === "Description" && ancestor(label.node,/^LODEntrance$/) && /^до\s+следующего\s*:/iu.test(sourceOf(label).trim())) return "pinata-countdown";
     if (name === "label" && ancestor(label.node,/^NPC_Controller$/)) return "dialog";
@@ -380,9 +406,9 @@ export function createController(cc, resources, log = {}) {
     return "normal";
   }
 
-   
-   
-   
+
+
+
   function stableControl(label) {
     const node = label.node.parent, layout = component(node, cc, "Layout");
     if (!node || !component(node, cc, "Button") || number(layout?.resizeMode) !== 1) return controls.get(node) ?? null;
@@ -392,18 +418,23 @@ export function createController(cc, resources, log = {}) {
       if (!ui) return null;
       const presets = { playbutton: [205.833557,108.156], gamestartbutton: [313.2878,116], boostbutton: [315.15765,94.1] };
       presets.laststandstartbutton = presets.gamestartbutton;
-       
-       
+
+
       const target = ancestor(node,/^AlmanacUpgradeDisplayer$/) && node.name === "PlayButton"
         ? [491.092224,171.8]
         : presets[String(node.name).toLowerCase().replace(/_/g,"")] ?? [number(ui.width),number(ui.height)];
       const horizontal = number(layout.type) === 1;
       control = { node, layout, enabled: layout.enabled, resizeMode: layout.resizeMode, original: [number(ui.width),number(ui.height)], width: target[0], height: target[1], horizontal };
+      if (ancestor(node,/^AlmanacUpgradeDisplayer$/) && node.name === "PlayButton") {
+        control.position = node.position.clone?.() ?? {...node.position};
+        const frame = box(node.parent,cc), ps = scale(node.parent), ns = scale(node), anchorY = number(ui.anchorPoint?.y,.5);
+        if (frame) node.setPosition(number(node.position.x), Math.max(control.position.y, (frame.bottom + 26*ps.y + control.height*ns.y*anchorY - point(node.parent).y)/ps.y), number(node.position.z));
+      }
       if (horizontal) {
         const siblings = (node.children ?? []).filter(other => other !== label.node && other.active !== false);
         control.captionWidth = control.width - number(layout.paddingLeft) - number(layout.paddingRight) - siblings.length * number(layout.spacingX) - siblings.reduce((sum,other) => sum + number(transform(other,cc)?.width) * positive(other.scale?.x),0);
-         
-         
+
+
         for (const sibling of siblings) {
           const other = component(sibling,cc,"Label");
           if (other && !RUSSIAN.test(String(other.string))) other.updateRenderData?.(true);
@@ -422,6 +453,7 @@ export function createController(cc, resources, log = {}) {
       if (present && [...states.keys()].some(label => label.node.parent === node && present.has(label))) continue;
       if (node.isValid !== false) {
         transform(node, cc)?.setContentSize?.(...control.original);
+        if (control.position) node.setPosition?.(control.position);
         if (control.layout.isValid !== false) { control.layout.resizeMode = control.resizeMode; control.layout.enabled = control.enabled; }
       }
       controls.delete(node);
@@ -430,29 +462,23 @@ export function createController(cc, resources, log = {}) {
 
   function adviceContext(node) {
     if(ancestor(node,/^NPC_Controller$/i))return false;
-     
-     
+
+
     if(ancestor(node,/^SettingWindow$/i)&&/^(?:ToolTip|KeyTip|RestartTip)$/i.test(node?.name??""))return true;
     if(ancestor(node,/^KeyTips?$/i))return false;
     return !!ancestor(node,/tip|hint|help|instruction|howtoplay|guide|^InfoWindow$/i);
   }
-  function styleFor(label, state) {
-    if(roleFor(label)==='objective-prose')return 'regular';
-    if(adviceContext(label.node))return "regular";
-    if (roleFor(label) === "dialog") return "dialog";
-    if (["warning","reward-heading","arcade-heading","arcade-caption","ticket-expiry"].includes(roleFor(label))) return "bold";
-    if (roleFor(label) === "game-tip") return "regular";
-    const fixedProse = number(state.original.overflow) !== 0 && state.original.enableWrapText !== false && state.source.length > 55;
-    return /brief|description|illustration|mission|restarttip/i.test(label.node.name ?? "") || fixedProse || state.source.length > 100 ? "regular" : "bold";
+  function styleFor(label,state) {
+    return originalFontSlot(state?.original.font ?? label.font,label.node,state?.original.fontFamily ?? label.fontFamily);
   }
 
-  function opticalFactor(style) { return resources.custom && styleTheme(resources,style) === "ruslan" ? 1.18 : 1; }
-  function baseSize(label, state) { return Math.max(1, number(state?.original.fontSize ?? label.fontSize, 40) * number(resources.percent, SIZE_RATIO * 100) / 100 * opticalFactor(state ? styleFor(label,state) : "bold")); }
+  function opticalFactor(style) { return fontOpticalFactor(resources,style); }
+  function baseSize(label, state) { return Math.max(1, number(state?.original.fontSize ?? label.fontSize, 40) * number(resources.percent, SIZE_RATIO * 100) / 100 * opticalFactor(styleFor(label,state))); }
   function sourceOf(label) { const s = states.get(label); return s && label?.string === s.applied?.string ? s.source : String(label?.string ?? ""); }
   function idealWidth(label) {
     const state = states.get(label);
     if (!RUSSIAN.test(sourceOf(label)) && !adviceContext(label.node)) return box(label.node, cc)?.width ?? 0;
-    const style = state ? styleFor(label, state) : "bold";
+    const style = styleFor(label,state);
     return Math.max(...sourceOf(label).trim().split(/\r?\n/).map(t => measure(t, style))) * baseSize(label, state) * scale(label.node).x;
   }
 
@@ -472,7 +498,7 @@ export function createController(cc, resources, log = {}) {
       if (!b || b.width / ns.x < 30 || b.height / ns.y < 15 || p.x < b.left - ns.x || p.x > b.right + ns.x || p.y < b.bottom - ns.y || p.y > b.top + ns.y) continue;
       const button = component(n, cc, "Button");
       const visual = button || component(n, cc, "Sprite") || component(n, cc, "Slider");
-       
+
       if (visual || (b.width / ns.x >= 180 && b.height / ns.y >= 90)) return { node: n, box: b, button: !!button };
     }
     return null;
@@ -486,18 +512,18 @@ export function createController(cc, resources, log = {}) {
     let maxSize = screen ? screen.height * 0.075 / s.y : Infinity;
     const role = roleFor(label), control = stableControl(label);
     if (role === "world") {
-       
+
       const group = labels.filter(other => roleFor(other) === "world" && other.node.parent === node.parent && RUSSIAN.test(sourceOf(other)));
       width = Math.min(width, state.own.width > 50 ? state.own.width : 640);
       const rows=Math.max(1,...group.map(other=>sourceOf(other).trim().split(/\s+/).length));
-      const longest=Math.max(1,...group.flatMap(other=>sourceOf(other).trim().split(/\s+/).map(word=>measure(word,"bold"))));
+      const longest=Math.max(1,...group.flatMap(other=>sourceOf(other).trim().split(/\s+/).map(word=>measure(word,styleFor(other,states.get(other))))));
       height=Math.min(state.own.height>15?state.own.height:236,236);
       maxSize=Math.min(100,Math.floor((width-20)/(longest*1.04)),Math.floor((height-16)/(rows*1.3)));
       return {width,height,maxSize,multiline:true,fixed:true,role};
     }
     if (role === "level" || role === "intro") {
-       
-       
+
+
       return { width: Math.min(width,state.own.width*0.94), height: state.own.height*0.94, maxSize, multiline: false, fixed: true, role };
     }
     if (control) {
@@ -520,7 +546,7 @@ export function createController(cc, resources, log = {}) {
       for (const other of labels) {
         if (other === label || other.node.activeInHierarchy === false || !descendants(other.node, frame.node)) continue;
         const op = point(other.node), os = scale(other.node);
-         
+
         if (Math.abs(op.y - p.y) > Math.min(baseSize(label, state) * s.y, baseSize(other, states.get(other)) * os.y) * 0.55) continue;
         const oa = anchor(other.node, cc);
         const opposite = (ax < 0.25 && oa > 0.75 && op.x > p.x) || (ax > 0.75 && oa < 0.25 && op.x < p.x);
@@ -536,7 +562,7 @@ export function createController(cc, resources, log = {}) {
           available = Math.min(available, (p.x - edge) * (ax < 0.75 ? 2 : 1));
         }
       }
-       
+
       for (let branch = node; branch && branch !== frame.node; branch = branch.parent) {
         for (const obstacle of branch.parent?.children ?? []) {
           if (obstacle === branch || component(obstacle, cc, "Label") || obstacle.active === false) continue;
@@ -553,7 +579,7 @@ export function createController(cc, resources, log = {}) {
       }
       if (available / s.x > 5) width = Math.min(width, available / s.x);
     }
-     
+
     const compactTextBox = fixed && number(state.original.overflow) === 2 && state.own.width / Math.max(1, state.own.height) < 5 && /\s/.test(state.source);
     const prose = /brief|description|illustration|mission/i.test(node.name ?? "") || (fixed && state.original.enableWrapText !== false && state.source.length > 55) || compactTextBox;
     const multiline = !title && (prose || /\S[^\n]*\n[^\n]*\S/.test(state.source)) && fixed && (!frame?.button || state.original.enableWrapText !== false);
@@ -566,30 +592,34 @@ export function createController(cc, resources, log = {}) {
     try{inkCanvas??=globalThis.document?.createElement("canvas").getContext("2d");if(inkCanvas){inkCanvas.font=`${size}px "${fontFor(resources,style)}"`;return {ascent:Math.max(...lines.map(t=>inkCanvas.measureText(t).actualBoundingBoxAscent??size)),descent:Math.max(...lines.map(t=>inkCanvas.measureText(t).actualBoundingBoxDescent??size*.3))};}}catch(_){}
     return {ascent:size,descent:size*.35};
   }
-  function fitBlock(label,state,{width,height,base=baseSize(label,state),style=styleFor(label,state),role=roleFor(label),source=state.source.trim(),maxLines=2,forceWrap=false,grow=false}) {
+  function fitBlock(label,state,{width,height,base=baseSize(label,state),style=styleFor(label,state),role=roleFor(label),source=state.source.trim(),maxLines=2,forceWrap=false,grow=false,preserveLines=false}) {
     const outline=label.enableOutline ? Math.min(number(state.original.outlineWidth,2), role === "warning" ? 3 : Infinity) : 0;
     const usable=Math.max(1,width-outline*2-10), space=Math.max(1,height-outline*2-8);
     const natural=Math.max(...source.split(/\r?\n/).map(t=>measure(t,style)));
     const single=Math.min(base,usable/Math.max(.01,natural*1.04),space/1.35);
-    const multiline=forceWrap || source.includes("\n") || (single < base*.8 && /\s/.test(source));
-    let size=Math.max(1,Math.floor(multiline ? base : single));
-    let lines=multiline ? wrapWords(source,usable/1.04,size,measure,style) : [source.replace(/\s*\r?\n\s*/g," ")];
+    const hint=["game-tip","loading-tip","advice"].includes(role),authored=authoredLines(source);
+    const authoredSize=Math.min(base,usable/Math.max(.01,natural*1.04));
+    const keepLines=preserveLines || (hint&&authoredSize>=base*.88&&authored.length<=maxLines);
+    const multiline=keepLines || forceWrap || source.includes("\n") || (single < base*.8 && /\s/.test(source));
+    const arrange=size=>keepLines?authored:multiline?(hint?balancedLines:wrapWords)(source,usable/1.04,size,measure,style):[source.replace(/\s*\r?\n\s*/g," ")];
+    let size=Math.max(1,Math.floor(keepLines?authoredSize:multiline?base:single));
+    let lines=arrange(size);
     if (multiline) while(size>1 && (Math.max(...lines.map(t=>measure(t,style)))*size*1.04>usable || lines.length>maxLines || (!grow && (lines.length-1)*size*LINE_RATIO+size*1.35>space))) {
-      size--;lines=wrapWords(source,usable/1.04,size,measure,style);
+      size--;lines=arrange(size);
     }
     let ink=inkBounds(lines,style,size),lineHeight=Math.max(size*LINE_RATIO,ink.ascent+ink.descent+outline*2+4);
     let tipHeight=(lines.length-1)*lineHeight+Math.max(size*1.65,ink.ascent+ink.descent)+outline*2+24;
-     
-     
-     
-    if(["advice","fanmade-title","arcade-confirm","arcade-reward","game-tip"].includes(role))while(size>1&&tipHeight>height){size--;lines=multiline?wrapWords(source,usable/1.04,size,measure,style):[source.replace(/\s*\r?\n\s*/g," ")];ink=inkBounds(lines,style,size);lineHeight=Math.max(size*LINE_RATIO,ink.ascent+ink.descent+outline*2+4);tipHeight=(lines.length-1)*lineHeight+Math.max(size*1.65,ink.ascent+ink.descent)+outline*2+24;}
+
+
+
+    if(["advice","fanmade-title","arcade-confirm","arcade-reward","game-tip","loading-tip","fanmade-local","pause-confirm","dialog"].includes(role))while(size>1&&tipHeight>height){size--;lines=arrange(size);ink=inkBounds(lines,style,size);lineHeight=Math.max(size*LINE_RATIO,ink.ascent+ink.descent+outline*2+4);tipHeight=(lines.length-1)*lineHeight+Math.max(size*1.65,ink.ascent+ink.descent)+outline*2+24;}
     return {fontFamily:fontFor(resources,style),useSystemFont:true,fontSize:size,lineHeight:Math.round(lineHeight*10)/10,
       spacingX:0,isBold:false,enableWrapText:false,overflow:1,verticalAlign:1,cacheMode:0,string:lines.join("\n"),
       ...(role === "warning" ? {outlineWidth:outline} : {}),bounds:{width,height:grow?Infinity:height,maxSize:Infinity,multiline,fixed:true,role},geometry:{width,height:grow?tipHeight:height},style,lines};
   }
 
-   
-   
+
+
   function timerNode(node, present) {
     present.add(node);
     let saved = timerNodes.get(node);
@@ -646,7 +676,7 @@ export function createController(cc, resources, log = {}) {
       const b=timerNode(badge,present),l=timerNode(label.node,present),ui=transform(badge,cc);
       ui?.setContentSize?.(300,110);
       label.node.setScale?.(1,1,l.scale[2]);label.node.setPosition?.(0,0,l.position[2]);
-       
+
       const countHeight=number(transform(root,cc)?.height,95.4), by=positive(b.scale[1]);
       badge.setPosition?.(0,-countHeight/2-8-110*by/2,b.position[2]);
 
@@ -659,84 +689,186 @@ export function createController(cc, resources, log = {}) {
   function specialPlan(label,state,labels) {
     const tuned=value=>value*number(resources.percent,68)/68;
     const role=roleFor(label), node=label.node, ui=transform(node.parent,cc);
+    if (node.name === "description" && ancestor(node,/^AlmanacUpgradeDisplayer$/)) {
+      const button = node.parent?.getChildByName?.("PlayButton"), caption = button?.getChildByName?.("Label");
+      if (caption) stableControl(component(caption,cc,"Label"));
+      const frame = button && box(button,cc), ns = scale(node), ps = scale(node.parent);
+      const top = point(node.parent).y + state.position.y*ps.y;
+      const height = frame ? Math.max(1,(top-frame.top-22*ps.y)/ns.y) : state.own.height;
+      const fit = fitBlock(label,state,{width:state.own.width,height,role:"upgrade-description",maxLines:6,forceWrap:true});
+      fit.verticalAlign=0;return fit;
+    }
+    if(role === "pause-confirm")return fitBlock(label,state,{width:state.own.width,height:state.own.height,role,maxLines:Math.max(1,authoredLines(state.source).length),preserveLines:true});
     if(role==='objective-prose'){
       const row=node.parent,layout=component(row,cc,'Layout'),icons=(row.children??[]).filter(n=>n!==node&&n.active!==false);
       const reserved=icons.reduce((sum,n)=>sum+number(transform(n,cc)?.width)*positive(n.scale.x),0)+icons.length*number(layout?.spacingX);
       const width=Math.max(200,number(ui?.width,1200)-number(layout?.paddingLeft)-number(layout?.paddingRight)-reserved-24);
-      return fitBlock(label,state,{width,height:400,base:tuned(44),style:'regular',role,maxLines:8,forceWrap:true,grow:true});
+      const pause=ancestor(node,/^PauseScreen$/),sound=pause&&labels.find(other=>other.node.name==='ToolTip'&&other.node.parent?.name==='MusicVolume'&&ancestor(other.node,/^PauseScreen$/)===pause&&states.has(other));
+      const reference=sound&&plan(sound,states.get(sound),labels);
+      const base=reference?reference.fontSize*scale(sound.node).y/scale(node).y*.95:tuned(40)*opticalFactor(styleFor(label,state));
+      return fitBlock(label,state,{width,height:400,base,style:styleFor(label,state),role,maxLines:8,forceWrap:true,grow:true});
+    }
+    if(role === "fanmade-local") {
+      return fitBlock(label,state,{width:500,height:160,base:tuned(52),role,maxLines:2,forceWrap:true});
+    }
+    if(role === "loading-tip") {
+      const screen=screenBox(node),ns=scale(node);
+      return fitBlock(label,state,{width:screen?screen.width*.92/ns.x:2000,height:screen?screen.height*.28/ns.y:440,base:tuned(screen?screen.height*.035/ns.y:56),role,maxLines:12,grow:true,forceWrap:true});
     }
     if(role === "window-title") {
+      const frame=node.parent?.parent;
+      const medals=ancestor(node,/^PlantMedalDisplayer$/);
+      if(medals) {
+        const ns=scale(node),ps=scale(node.parent),top=point(node.parent).y+state.position.y*ps.y+16*ns.y;
+        const content=[];const visit=n=>{if(n.name==='ScrollView'&&n.activeInHierarchy!==false){const r=box(n,cc);if(r)content.push(r.top);}for(const child of n.children??[])visit(child);};visit(medals);
+        const height=Math.min(150,content.length?Math.max(1,(top-Math.max(...content)-20*ns.y)/ns.y):state.own.height);
+        const width=Math.min(1800,Math.max(state.own.width,number(ui?.width,1200)*.72));
+        const fit=fitBlock(label,state,{width,height,base:tuned(104),role,maxLines:1});
+        fit.position={...state.position,y:state.position.y+16*ns.y/ps.y};return fit;
+      }
+      if(frame?.parent?.name === "FanmadeLevelWindow") {
+        const ns=scale(node),ps=scale(node.parent),local=frame.getChildByName?.("LocalLevelNode"),caption=local?.getChildByName?.("ToolTip"),close=frame.getChildByName?.("buttonExit"),border=box(node.parent,cc);
+        if(caption&&border) {
+          const captionLeft=point(caption).x,left=captionLeft+500*scale(caption).x+28*ns.x,right=(close&&box(close,cc)?.left)??border.right-80*ns.x;
+          if(right>left) {
+            const fit=fitBlock(label,state,{width:(right-left)/ns.x-24,height:150,base:tuned(104),role,maxLines:1});
+            fit.position={...state.position,x:((left+right)/2-point(node.parent).x)/ps.x};return fit;
+          }
+        }
+      }
+      if(frame?.parent?.name === "PlayerSelector") {
+        const border=box(node.parent,cc),ns=scale(node),ps=scale(node.parent);
+        if(border) {
+          const gap=24*ns.x,center=(border.left+border.right)/2;
+          let left=border.left+gap,right=border.right-gap;
+          for(const name of ["FixPlayer","buttonExit"]) {
+            const control=frame.getChildByName?.(name);
+            if(!control || control.activeInHierarchy===false)continue;
+            const r=box(control,cc);if(!r)continue;
+            if((r.left+r.right)/2<center)left=Math.max(left,r.right+gap);
+            else right=Math.min(right,r.left-gap);
+          }
+          if(right>left) {
+            const width=(right-left)/ns.x;
+            const fit=fitBlock(label,state,{width:Math.max(1,width-32),height:Math.max(state.own.height,150),base:tuned(104),style:styleFor(label,state),role,maxLines:1});
+            fit.geometry.width=width;fit.bounds.width=width;
+            fit.position={...state.position,x:((left+right)/2-point(node.parent).x)/ps.x};
+            return fit;
+          }
+        }
+      }
       const width=Math.min(1800,Math.max(state.own.width,number(ui?.width,1200)*.72));
-      return fitBlock(label,state,{width,height:Math.max(state.own.height,150),base:tuned(104),style:"bold",role,maxLines:1});
+      return fitBlock(label,state,{width,height:Math.max(state.own.height,150),base:tuned(104),style:styleFor(label,state),role,maxLines:1});
     }
     if(role === "task-count") {
-       
-       
-      const root=ancestor(node,/^(?:LevelTaskCount|LevelTaskDisplayer)(?:\d+)?$/i),pill=root?.getChildByName?.("taskCountWindow"),icon=root?.getChildByName?.("Icon"),frame=pill&&box(pill,cc),s=scale(node),p=point(node),rs=scale(root??node);
+
+
+      const root=ancestor(node,/^(?:LevelTaskCount|LevelTaskDisplayer)(?:\d+)?$/i),pill=root?.getChildByName?.("taskCountWindow"),icon=root?.getChildByName?.("Icon");
+      if(pill&&/^Осталось(?:\s|:)/u.test(state.source)){state.counterPill=pill;const saved=rememberTip(pill);transform(pill,cc)?.setContentSize(Math.max(saved.size?.[0]??150,174),saved.size?.[1]??45);}
+      const frame=pill&&box(pill,cc),s=scale(node),p=point(node),rs=scale(root??node);
       const left=frame?Math.max(frame.left+8*rs.x,((icon&&box(icon,cc)?.right)??frame.left)+6*rs.x):null;
       const right=frame?frame.right-8*rs.x:null,width=frame?Math.max(1,right-left)/s.x:Math.max(state.own.width,250),height=frame?Math.max(1,(frame.height-8*rs.y)/s.y):Math.max(state.own.height,110);
-      const fit=fitBlock(label,state,{width,height,source:state.source.replace(/\s+/g," ").trim(),base:tuned(44),style:"compact",role,maxLines:1});
+      const fit=fitBlock(label,state,{width,height,source:state.source.replace(/\s+/g," ").trim(),base:tuned(44),style:styleFor(label,state),role,maxLines:1});
       if(frame)fit.position={...state.position,x:((left+right)/2-point(node.parent).x)/scale(node.parent).x};
       return fit;
     }
-    if(label.__rffFanmadeTitle) return fitBlock(label,state,{...label.__rffFanmadeTitle,source:state.source,base:tuned(48),style:"bold",role:"fanmade-title",maxLines:2,forceWrap:true});
-    if(label.__rffArcadeReward) return fitBlock(label,state,{...label.__rffArcadeReward,source:state.source,base:tuned(50),style:"bold",role:"arcade-reward",maxLines:1});
-    if(node.name==="Upload"&&node.parent?.name==="confirm_frame") {
-       
-       
-      return fitBlock(label,state,{width:Math.min(154,number(ui?.width,177.5)-24),height:state.own.height,source:state.source.replace(/^Подтверждено$/iu,"Подтверж-\nдено"),base:tuned(30),style:"bold",role:"arcade-confirm",maxLines:2,forceWrap:true});
+    if(label.__rffFanmadeTitle) return fitBlock(label,state,{...label.__rffFanmadeTitle,source:state.source,base:tuned(48),style:styleFor(label,state),role:"fanmade-title",maxLines:2,forceWrap:true});
+    if(label.__rffArcadeReward) {
+      const reward=label.__rffArcadeReward,multiline=reward.maxLines===2;
+      return fitBlock(label,state,{...reward,source:state.source,base:tuned(multiline?44:50),style:styleFor(label,state),role:"arcade-reward",maxLines:reward.maxLines??1,forceWrap:multiline});
+    }
+    if(node.parent?.name==="confirm_frame" && /^(Change|Fault|Half|Correct|Steps|Upload)$/.test(node.name)) {
+      const index=['Change','Fault','Half','Correct'].indexOf(node.name),legend=index>=0,upload=node.name==='Upload',frame=box(node.parent,cc),ps=scale(node.parent),ns=scale(node);
+      const style=styleFor(label,state),outline=label.enableOutline?number(label.outlineWidth,2):0;
+      const left=legend?state.position.x+8:-(number(ui?.width,177.5)/2)+24;
+      const width=legend?Math.max(1,number(ui?.width,177.5)/2-14-left):number(ui?.width,177.5)-48;
+      const height=legend?41:upload?76:46,source=upload?state.source.replace(/^Подтверждено$/iu,"Подтверж-\nдено"):state.source.trim();
+      const available=Math.max(1,width-outline*2-8);
+      let size=Math.floor(upload?tuned(30):baseSize(label,state)),lines,lineHeight;
+      do { lines=balancedLines(source,available/1.04,size,measure,style);const ink=inkBounds(lines,style,size);lineHeight=Math.max(size*LINE_RATIO,ink.ascent+ink.descent+outline*2+2);
+        if(lines.length<=(legend||upload?2:1)&&Math.max(...lines.map(text=>measure(text,style)))*size*1.04<=available&&(lines.length-1)*lineHeight+Math.max(size*1.35,ink.ascent+ink.descent)+outline*2+6<=height)break;
+      } while(--size>1);
+      const position={...state.position,x:upload?0:left,y:legend?41-index*43:upload&&frame?(frame.bottom+14*ps.y+height*ns.y*.5-point(node.parent).y)/ps.y:state.position.y};
+      if(legend){const sign=node.getChildByName?.('sign');if(sign){const saved=rememberTip(sign);sign.setPosition(saved.p.x-8,saved.p.y,saved.p.z);}}
+      return {fontFamily:fontFor(resources,style),useSystemFont:true,fontSize:size,lineHeight:Math.round(lineHeight*10)/10,spacingX:0,isBold:false,enableWrapText:false,overflow:1,verticalAlign:1,cacheMode:0,string:lines.join('\n'),geometry:{width,height},position,style,lines,bounds:{width,height,maxSize:Infinity,multiline:true,fixed:true,role:upload?'arcade-confirm':'arcade-legend'}};
     }
     if(role === "world") {
       const b=budget(label,state,labels);
-      return fitBlock(label,state,{width:b.width,height:b.height,source:state.source.trim().split(/\s+/).join("\n"),base:b.maxSize*number(resources.percent,68)/68,style:"bold",role,maxLines:20,forceWrap:true});
+      return fitBlock(label,state,{width:b.width,height:b.height,source:state.source.trim().split(/\s+/).join("\n"),base:b.maxSize*number(resources.percent,68)/68,style:styleFor(label,state),role,maxLines:20,forceWrap:true});
     }
-    if(role === "lose-tip") return fitBlock(label,state,{width:state.own.width,height:state.own.height,style:"regular",role,maxLines:2});
-    if(label.__rffStorePrice) return fitBlock(label,state,{...label.__rffStorePrice,source:state.source,base:tuned(52),style:"compact",role:"store-price",maxLines:1});
+    if(role === "level" && label.__rffLevelCaption) {
+      return fitBlock(label,state,{...label.__rffLevelCaption,role,maxLines:1});
+    }
+    if(role === "intro") {
+      const b=budget(label,state,labels),fit=fitBlock(label,state,{width:b.width,height:Math.max(100,state.own.height),role,maxLines:2});
+      const screen=screenBox(node),ns=scale(node),ps=scale(node.parent),icons=[];
+      const nativePowerClass=cc.js?.getClassByName?.('PowerupFingers');
+      const visit=n=>{const power=nativePowerClass?n.getComponent?.(nativePowerClass):null;if(power&&n.activeInHierarchy!==false)for(const field of ['fireButton','snowButton','tossButton','zapButton','cherryButton']){const button=power[field]?.node;if(button?.activeInHierarchy!==false){const r=button&&box(button,cc);if(r)icons.push(r);}}if(n.activeInHierarchy!==false&&/^(?:PowerupFingers|Powerup_(?:Snow|Toss|Zap|Flame|Cherry)|PlantFoodCount)$/.test(n.name??"")){const r=box(n,cc);if(r)icons.push(r);}for(const child of n.children??[])visit(child);};
+      let top=node;while(top.parent)top=top.parent;visit(top);
+      const currentBottom=point(node.parent).y+state.position.y*ps.y-fit.geometry.height*ns.y*number(transform(node,cc)?.anchorPoint?.y,.5);
+      const bottom=Math.max(currentBottom,...icons.filter(r=>!screen||r.bottom<screen.bottom+screen.height*.25).map(r=>r.top+12));
+      if(bottom>currentBottom)fit.position={...state.position,y:state.position.y+(bottom-currentBottom)/ps.y};
+      return fit;
+    }
+    if(role === "lose-tip") return fitBlock(label,state,{width:state.own.width,height:state.own.height,style:styleFor(label,state),role,maxLines:2});
+    if(label.__rffStorePrice) return fitBlock(label,state,{...label.__rffStorePrice,source:state.source,base:tuned(52),style:styleFor(label,state),role:"store-price",maxLines:1});
     if(role === "warning") {
-       
-       
+
+
       let canvas=node.parent;while(canvas?.parent && !component(canvas,cc,"Canvas") && canvas.name !== "Canvas") canvas=canvas.parent;
       const designWidth=number(transform(canvas,cc)?.width,1024);
       const width=designWidth*.86/.5;
-      return fitBlock(label,state,{width,height:290,base:90*number(resources.percent,68)/68*opticalFactor("bold"),style:"bold",role,maxLines:2,forceWrap:true});
+      return fitBlock(label,state,{width,height:290,base:90*number(resources.percent,68)/68*opticalFactor(styleFor(label,state)),style:styleFor(label,state),role,maxLines:2,forceWrap:true});
     }
     if(role === "game-tip") {
       const screen=screenBox(node),root=node.parent,rs=scale(root),info=tipIllustration(root);
       const panelWidth=screen?screen.width*.92/rs.x:state.own.width*positive(node.scale.x)+24;
-       
-       
-       
+
+
+
       const tipScale=Math.max(1,panelWidth/900),width=Math.max(120,(panelWidth-info.width-32)/tipScale),effectiveY=rs.y*tipScale;
-      return {...fitBlock(label,state,{width,height:screen?screen.height*.40/effectiveY:600,base:tuned(screen?screen.height*.035/effectiveY:70),style:"regular",role,maxLines:20,grow:true,forceWrap:true}),tipScale};
+      return {...fitBlock(label,state,{width,height:screen?screen.height*.40/effectiveY:600,base:tuned(screen?screen.height*.035/effectiveY:70),style:styleFor(label,state),role,maxLines:20,grow:true,forceWrap:true}),tipScale};
     }
-    if(role === "dialog") return fitBlock(label,state,{width:state.own.width,height:state.own.height,style:"dialog",role,maxLines:12,forceWrap:true});
-    if(role === "reward-heading") return fitBlock(label,state,{width:Math.max(state.own.width,number(ui?.width)*.93),height:state.own.height,style:"bold",role});
+    if(role === "dialog") {
+      const style=styleFor(label,state);
+      let base=baseSize(label,state);
+      if(style==='pico') {
+        const root=ancestor(node,/^NPC_Controller$/),portrait=Boolean(ancestor(node,/Icon_bubble$/));
+        const reference=labels.find(other=>other!==label&&roleFor(other)==='dialog'&&ancestor(other.node,/^NPC_Controller$/)===root&&Boolean(ancestor(other.node,/Icon_bubble$/))===portrait&&styleFor(other,states.get(other))==='brianne');
+        const original=reference&&states.get(reference)?.original;
+        const nativeSize=number(original?.fontSize??reference?.fontSize,70);
+        const ratio=reference?scale(reference.node).y/scale(node).y:1;
+        base=nativeSize*ratio*number(resources.percent,68)/100*opticalFactor(style);
+      }
+      return fitBlock(label,state,{width:state.own.width,height:state.own.height,base,style,role,maxLines:12,forceWrap:true});
+    }
+    if(role === "reward-heading") return fitBlock(label,state,{width:Math.max(state.own.width,number(ui?.width)*.93),height:state.own.height,style:styleFor(label,state),role});
     if(role === "ticket-expiry") {
       const source=russianTime(state.source.trim().replace(/\s+/g," ")).replace(/^истекает\s+через\s*/iu,"").replace(/[!]+$/u,"");
       const native=label.node.parent?.name === "TicketCountDown";
       const width=native ? number(ui?.width)*.90 : Math.max(state.own.width,number(ui?.width)*.89);
       const height=native ? number(ui?.height)*.87 : Math.max(state.own.height,number(ui?.height)*.86);
-      return fitBlock(label,state,{width,height,source,base:tuned(native?48:42),style:"compact",role,maxLines:2});
+      return fitBlock(label,state,{width,height,source,base:tuned(native?48:42),style:styleFor(label,state),role,maxLines:2});
     }
     if(role === "pinata-countdown") {
       const time=russianTime(state.source.trim().replace(/^до\s+следующего\s*:\s*/iu,"").replace(/\s+/g," "));
-      const fit=fitBlock(label,state,{width:320,height:84,source:`До следующего:\n${time}`,base:tuned(30),style:"compact",role,maxLines:2,forceWrap:true});
-       
-       
-       
-       
+      const fit=fitBlock(label,state,{width:320,height:84,source:`До следующего:\n${time}`,base:tuned(30),style:styleFor(label,state),role,maxLines:2,forceWrap:true});
+
+
+
+
       fit.position={...state.position};
       return fit;
     }
-    if(role === "arcade-heading") return fitBlock(label,state,{width:Math.max(state.own.width,number(ui?.width)*.85),height:Math.max(state.own.height,140),style:"bold",role});
+    if(role === "arcade-heading") return fitBlock(label,state,{width:Math.max(state.own.width,number(ui?.width)*.85),height:Math.max(state.own.height,140),style:styleFor(label,state),role});
     if(role === "arcade-caption") {
       const b=budget(label,state,labels);
       const source=state.source.trim().replace(/^Количество растений$/iu,"Число растений");
-      return fitBlock(label,state,{width:b.width,height:Math.max(state.own.height,80),source,style:"bold",role});
+      return fitBlock(label,state,{width:b.width,height:Math.max(state.own.height,80),source,style:styleFor(label,state),role});
     }
     if(adviceContext(node)) {
       const b=budget(label,state,labels),height=Number.isFinite(b.height)?b.height:Math.max(state.own.height,baseSize(label,state)*1.8);
-      const fit=fitBlock(label,state,{width:b.width,height,style:"regular",role:"advice",maxLines:20});
+      const fit=fitBlock(label,state,{width:b.width,height,style:styleFor(label,state),role:"advice",maxLines:20});
       fit.bounds={...b,height,multiline:fit.bounds.multiline,role:"advice"};return fit;
     }
     return null;
@@ -750,9 +882,9 @@ export function createController(cc, resources, log = {}) {
     const width = Math.max(1, b.width - outline - 3);
     const height = Math.max(1, b.height - outline - 3);
     let source = b.multiline ? state.source.trim() : state.source.trim().replace(/\s*\r?\n\s*/g, " ");
-     
-     
-     
+
+
+
     if (!b.multiline && !(b.control?.horizontal) && (b.soloButton || b.control || /title|plantname/i.test(label.node.name ?? "")) && /\s/.test(source) && Number.isFinite(b.height) && b.height >= 65) {
       const fit=fitBlock(label,state,{width:b.width,height:b.height,source,base:Math.min(baseSize(label,state),b.maxSize),style,role:b.role});
       if(fit.bounds.multiline) {fit.bounds={...b,multiline:true};return fit;}
@@ -782,14 +914,14 @@ export function createController(cc, resources, log = {}) {
   function plan(label,state,labels){
     const desired=basePlan(label,state,labels),percent=number(resources.percent,68);
     if(percent<68){
-       
-       
-       
+
+
+
       const originalPercent=resources.percent;let reference;
       try{resources.percent=68;reference=basePlan(label,state,labels);}finally{resources.percent=originalPercent;}
       const size=Math.max(1,Math.min(desired.fontSize,Math.floor(reference.fontSize*percent/68)));
       if(size<desired.fontSize){const ratio=size/desired.fontSize;desired.fontSize=size;desired.lineHeight=Math.round(desired.lineHeight*ratio*10)/10;
-        if(desired.bounds.role==="game-tip"){
+        if(["game-tip","loading-tip"].includes(desired.bounds.role)){
           const ink=inkBounds(desired.lines,desired.style,size),outline=label.enableOutline?number(state.original.outlineWidth,2):0;
           desired.geometry.height=(desired.lines.length-1)*desired.lineHeight+Math.max(size*1.65,ink.ascent+ink.descent)+outline*2+24;
         }
@@ -810,7 +942,7 @@ export function createController(cc, resources, log = {}) {
       for (const [label, state] of states) if (!present.has(label) || label.isValid === false || label.node?.isValid === false) {
         restore(label, state); states.delete(label);
       }
-       
+
       for (const label of labels) {
         if (label.isValid === false || label.node?.isValid === false) continue;
         const state = states.get(label);
@@ -823,8 +955,8 @@ export function createController(cc, resources, log = {}) {
       for(const label of labels)if(states.has(label)&&roleFor(label)==='game-tip')prepareTipRoot(label.node.parent);
       const plans = [];
       for (const label of labels) { const state = states.get(label); if (state) plans.push([label, state, plan(label, state, labels)]); }
-       
-       
+
+
       const captions = plans.filter(([label,,desired]) => (desired.bounds.soloButton || desired.bounds.control) && labelList(label.node.parent,cc).length === 1);
       const grouped = new Set();
       for (const entry of captions) {
@@ -842,20 +974,21 @@ export function createController(cc, resources, log = {}) {
           grouped.add(other);
         }
       }
-      for(const [label,state,desired] of plans)if(desired.bounds.role==="game-tip"){
+      for(const [label,state,desired] of plans)if(["game-tip","loading-tip"].includes(desired.bounds.role)){
         if(!state.tipTarget?.node||state.tipTarget.node.isValid===false){
           releaseTipRaster(state);state.tipSprite=null;
           state.tipEnabled??=label.enabled;label.enabled=false;
-          const node=new cc.Node('RussianGameTipText');node.parent=label.node.parent;node.layer=label.node.layer;node.__rffOwnedFont=true;node.addComponent(cc.UITransform);
+          const loading=desired.bounds.role==='loading-tip',node=new cc.Node(loading?'RussianLoadingTipText':'RussianGameTipText');node.parent=loading?label.node:label.node.parent;node.layer=label.node.layer;node.__rffOwnedFont=true;node.addComponent(cc.UITransform);
           state.tipTarget=node.addComponent(cc.Label);state.tipTarget.color=label.color.clone();state.tipTarget.enableOutline=label.enableOutline;state.tipTarget.outlineWidth=label.outlineWidth;state.tipTarget.outlineColor=label.outlineColor.clone();state.tipTarget.horizontalAlign=1;
         }
-        state.tipTarget.node.setScale(desired.tipScale,desired.tipScale,1);
+        state.tipTarget.node.setScale(desired.tipScale??1,desired.tipScale??1,1);
+        if(desired.bounds.role==='loading-tip')state.tipTarget.node.setPosition(0,desired.geometry.height/2,0);
       }
       const changedLabels = [];
       for (const [sourceLabel, state, desired] of plans) {
         const label=state.tipTarget??sourceLabel;
-         
-         
+
+
         let changed = false;
         for (const key of ["overflow", "enableWrapText", "cacheMode", ...("font" in desired ? ["font"] : []), ...("outlineWidth" in desired ? ["outlineWidth"] : []), "useSystemFont", "fontFamily", "isBold", "spacingX", "fontSize", "lineHeight", "verticalAlign", "string"]) if (label[key] !== desired[key]) { label[key] = desired[key]; changed = true; }
         if (desired.geometry) {
@@ -872,8 +1005,8 @@ export function createController(cc, resources, log = {}) {
         state.applied = desired;
         if (changed && label.node.activeInHierarchy !== false) changedLabels.push(sourceLabel);
       }
-       
-       
+
+
       for (const label of changedLabels) {
         (states.get(label)?.tipTarget??label).updateRenderData?.(true);
         if (["almanac-prose","game-tip"].includes(states.get(label)?.applied?.bounds.role)) {
@@ -881,15 +1014,15 @@ export function createController(cc, resources, log = {}) {
           if (!label.string) transform(label.node,cc)?.setContentSize?.(states.get(label).own.width,0);
         }
       }
-      reflowAlmanac([...richChanged,...changedLabels.filter(label=>almanacRole(label)).map(label=>label.node)]);
-       
-       
+      reflowAlmanac([...richChanged,...changedLabels.filter(label=>almanacRole(label)).map(label=>label.node)],russianPages);
+
+
       const objectiveLayouts=new Set();
       for(const [label,,desired]of plans)if(desired.bounds.role==='objective-prose')for(let n=label.node.parent;n&&!/^(LevelObjectiveScreen|PauseScreen)$/.test(n.name);n=n.parent){const layout=component(n,cc,'Layout');if(layout?.enabled)objectiveLayouts.add(layout);}
       const depth=n=>{let d=0;for(;n;n=n.parent)d++;return d;};
       for(const layout of [...objectiveLayouts].sort((a,b)=>depth(b.node)-depth(a.node)))layout.updateLayout?.(true);
       for(const [label,state,desired] of plans) if(roleFor(label) === "game-tip") layoutTip(label,state,desired,scene);
-      for(const [label,state,desired] of plans)if(desired.bounds.role==='game-tip')rasterTip(label,state,desired);
+      for(const [label,state,desired] of plans)if(['game-tip','loading-tip'].includes(desired.bounds.role))rasterTip(label,state,desired);
       const ownControls = new Set(changedLabels.map(label => states.get(label)?.applied?.bounds.control).filter(control => control?.horizontal));
       for (const control of ownControls) control.layout.updateLayout?.(true);
       releaseControls(present);
@@ -910,6 +1043,7 @@ export function createController(cc, resources, log = {}) {
       for (const [owner, state] of richStates) restoreRich(owner,state);
       richStates.clear();
       states.clear();
+      reflowAlmanac([]);
       releaseControls(null);
       for(const saved of timerNodes.values())restoreTimerNode(saved);
       restoreTimerOrder([...timerNodes.values()]);
@@ -919,7 +1053,7 @@ export function createController(cc, resources, log = {}) {
   };
 }
 
- 
+
 async function loadFonts(ctx, resources) {
   const own = ctx.files.own();
   resources.metrics = JSON.parse(await own.readText("assets/fonts/metrics.json"));
@@ -941,9 +1075,9 @@ async function loadFonts(ctx, resources) {
   if (!cancelled()) resources.custom = true;
 }
 
- 
- 
- 
+
+
+
 async function panelLanguageModule() {
   const entries = globalThis.performance?.getEntriesByType?.("resource") ?? [];
   const url = entries.map(e => e.name).find(n => /\/assets\/i18n-DdDmRoF-\.js(?:[?#]|$)/.test(n));
@@ -963,8 +1097,8 @@ export function createLanguageController(cc, classes, log = {}) {
     const language = ML.currentLanguage;
     applying = true;
     try {
-       
-       
+
+
       ML.currentLanguage = Number(languages?.EN ?? 0);
       panel.i();
     } finally { ML.currentLanguage = language; applying = false; }
@@ -985,8 +1119,8 @@ export function createLanguageController(cc, classes, log = {}) {
     applied = true;
     const previous = ML.currentLanguage;
     ML.currentLanguage = index;
-     
-     
+
+
     try {
       const storage = cc.sys?.localStorage;
       const source = storage?.getItem("PvZ2_Settings");
@@ -996,8 +1130,8 @@ export function createLanguageController(cc, classes, log = {}) {
       }
     } catch (error) { log.warn?.(`Язык применён на этот запуск; настройка языка не сохранена: ${String(error?.message ?? error)}`); }
     englishPanel();
-     
-     
+
+
     const menu = /^(mainScene|worldMapScene|almanacScene|storeScene|awardScene|zenGardenScene)$/i.test(cc.director.getScene()?.name ?? "");
     if (menu && (requestedLanguage === "ru" || previous !== index) && !KeyListener?.isInGame && typeof KeyListener?.RestartScene === "function") {
       try { Promise.resolve(KeyListener.RestartScene()).catch(error => log.warn?.(`Язык применён; обновить меню не удалось: ${String(error?.message ?? error)}`)); }
@@ -1032,10 +1166,10 @@ export default {
     const cc = ctx.engine.getCc();
     const event = cc?.Director?.EVENT_BEFORE_DRAW ?? "director_before_draw";
     if (!cc?.director?.on || !cc?.director?.getScene) throw new Error("Исправление шрифта: недоступен Cocos director");
-     
-    const resources = { custom: false, faces: [], metrics: null, stopped: false, percent: savedPercent(), theme: savedTheme(), bodyTheme:savedChoice(BODY_PREFERENCE_KEY,"shantell"),dialogTheme:savedChoice(DIALOG_PREFERENCE_KEY,"nunito") };
-     
-     
+
+    const resources = { custom: false, faces: [], metrics: null, stopped: false, percent: savedPercent(), fontSlots: readFontSlots(FONT_OPTIONS) };
+
+
     let nativeEngine = ctx.engine;
     const classByName = name => nativeEngine?.getClassByName?.(name) ?? cc.js?.getClassByName?.(name) ?? null;
     const exportByName = (module, name) => {
@@ -1043,11 +1177,16 @@ export default {
       return nativeEngine?.getModuleExport?.(id, name) ?? globalThis.System?.get?.(id)?.[name] ?? null;
     };
     const language = createLanguageController(cc, { MultiLanguage: classByName("MultiLanguage"), LanguageEnum: exportByName("MultiLanguage", "LanguageEnum"), Setting: exportByName("SettingWindow", "Setting"), KeyListener: classByName("KeyListener") }, ctx.log);
-    const resolveNative=()=>({SettingWindow:classByName("SettingWindow"),Players:nativeEngine?.getAllPlayerProperties?.()??exportByName("PlayerProperties","AllPlayerProperties"),profileKey:exportByName("PlayerProperties","UserDataDocument"),PowerupFingers:exportByName("PowerupFingers","PowerupFingers")??classByName("PowerupFingers"),PlantFoodCount:classByName("PlantFoodCount"),SunCount:classByName("SunCount"),LevelPlay:exportByName("levelController","LevelPlay"),CoinCount:classByName("CoinCount"),CoinCollecterInGame:classByName("CoinCollecterInGame"),sounds:exportByName("SoundRescourses","sounds"),Zen:classByName("zenGardenScene"),Commodity:classByName("StoreCommodity"),LnC:exportByName("LnC","LnC")??classByName("LnC"),UIInGame:exportByName("UI","UIInGame")});
+    const resolveNative=()=>({SettingWindow:classByName("SettingWindow"),Players:nativeEngine?.getAllPlayerProperties?.()??exportByName("PlayerProperties","AllPlayerProperties"),profileKey:exportByName("PlayerProperties","UserDataDocument"),PowerupFingers:exportByName("PowerupFingers","PowerupFingers")??classByName("PowerupFingers"),PlantFoodCount:classByName("PlantFoodCount"),SunCount:classByName("SunCount"),LevelPlay:exportByName("levelController","LevelPlay"),CoinCount:classByName("CoinCount"),CoinCollecterInGame:classByName("CoinCollecterInGame"),sounds:exportByName("SoundRescourses","sounds"),Zen:classByName("zenGardenScene"),Commodity:classByName("StoreCommodity"),LnC:exportByName("LnC","LnC")??classByName("LnC"),UIInGame:exportByName("UI","UIInGame"),ShovelUIController:classByName("ShovelUIController")});
     const native={...resolveNative(),resolve:()=>({...resolveNative(),Plant:classByName("Plant"),ImitaterPlant:classByName("ImitaterPlant"),MultiLanguage:classByName("MultiLanguage"),LanguageEnum:exportByName("MultiLanguage","LanguageEnum")})};
     const paid=createPaidController(cc,native,readPowerPreferences(),ctx.log),ui=createUiController(cc,native,ctx.log);
-    const planning=createPlanningController(native,ctx.log);
-    const preview=createFontPreview(cc,resources,ctx.log);
+    native.getGamingSpeed=()=>exportByName("UI","gamingSpeed");
+    native.getSuperSlowed=()=>exportByName("UI","superSlowed");
+    native.getFreePlantFood=()=>exportByName("UI","freePF");
+    native.resolveAutoCollect=()=>({dropping:classByName("dropping"),droppingInZen:classByName("droppingInZen"),LevelPlay:exportByName("levelController","LevelPlay"),UIInGame:exportByName("UI","UIInGame"),PlantFoodCount:classByName("PlantFoodCount")});
+    const tipParty=createTipPartyController(cc),autoCollect=createAutoCollectController(cc,native,ctx.log);
+    const planning=createPlanningController(native,ctx.log),speed=createSpeedController(cc,native,ctx.log),speedView=createSpeedControlView(speed),settingsView=createSettingsControlView();
+    const preview=createFontPreview(cc,resources,ctx.log,{slots:FONT_SLOTS,options:FONT_OPTIONS});
     let controller = null, listener = null, disposed = false;
     const cleanup = () => {
       if (disposed) return;
@@ -1055,7 +1194,7 @@ export default {
       nativeEngine = null;
       if (listener) cc.director.off(event, listener);
       controller?.dispose();
-      preview.dispose();ui.dispose();paid.dispose();planning.dispose();
+      tipParty.dispose();autoCollect.dispose();preview.dispose();ui.dispose();paid.dispose();planning.dispose();settingsView.dispose();speedView.dispose();speed.dispose();
       language.dispose();
       for (const face of resources.faces) globalThis.document?.fonts?.delete?.(face);
       resources.faces.length = 0;
@@ -1084,17 +1223,17 @@ export default {
         controller = createController(cc, resources, ctx.log);
         const reported = new Set();
         listener = () => {
-          for (const [name, helper] of [["язык",language],["интерфейс",ui],["усиления",paid],["планирование",planning],["шрифт",controller]]) {
+          for (const [name, helper] of [["язык",language],["уведомления",tipParty],["интерфейс",ui],["усиления",paid],["планирование",planning],["скорость",speed],["автоподбор",autoCollect],["шрифт",controller]]) {
             try { helper.scan(); }
             catch (error) {
-               
+
               if (!reported.has(name)) { reported.add(name); ctx.log.warn(`Исправление ${name}: ${String(error?.message ?? error)}`); }
             }
           }
         };
         cc.director.on(event, listener);
-        session = { controller, resources, cleanup, language, paid, ui, planning, preview, bindEngine: engine => { nativeEngine = engine; } };
-        ctx.log.info(`Русский шрифт ${VERSION}: ${resources.custom ? (resources.theme === "classic" ? "Balsamiq Sans" : (resources.theme === "ruslan" ? "Ruslan Display" : "Rubik Bubbles")) : "Arial"}; размер ${resources.percent}%; исправление до отрисовки кадра.`);
+        session = { controller, resources, cleanup, language, paid, ui, planning, speed, speedView, settingsView, preview, autoCollect, bindEngine: engine => { nativeEngine = engine; } };
+        ctx.log.info(`Русский шрифт ${VERSION}: пять исходных шрифтов; размер ${resources.percent}%; исправление до отрисовки кадра.`);
       },
       dispose: cleanup
     });
@@ -1111,17 +1250,22 @@ export default {
       try { globalThis.localStorage?.setItem(PREFERENCE_KEY, String(current.resources.percent)); } catch (_) {
         ctx.log.warn("Размер шрифта изменён на текущий запуск; сохранить настройку не удалось.");
       }
-       
+
     };
-    let pricesExpanded=false;
-    ctx.controls?.definePanel?.({
+    let pricesExpanded=false,autoExpanded=false;
+    ctx.controls?.definePanel?.(current.settingsView.wrapPanel({
       title: "Русский шрифт и размеры",
       description: "Автоматическая подгонка работает при любом выбранном размере. Настройка сохраняется отдельно от прогресса игры.",
       groups: [{ title: "Оформление", items: [
         {type:"select",key:"startup-language",label:"Язык запуска по умолчанию",description:"Применяется после полного перезапуска игры. Для русского языка нужен включённый русификатор.",options:[{value:"ru",label:"Русский"},{value:"en",label:"English"}],getValue:()=>current.language.startupLanguage,setValue:value=>current.language.setStartupLanguage(value)},
-        {type:"select",key:"font-style",label:"Основной шрифт",options:FONT_OPTIONS,getValue:()=>current.resources.theme,setValue:v=>{if(v in THEMES){current.resources.theme=v;globalThis.localStorage?.setItem(FONT_PREFERENCE_KEY,v);}}},
-        ...[{key:"body-style",label:"Описания и советы",property:"bodyTheme",storage:BODY_PREFERENCE_KEY},{key:"dialog-style",label:"Реплики в диалогах",property:"dialogTheme",storage:DIALOG_PREFERENCE_KEY}].map(item=>({type:"select",key:item.key,label:item.label,options:[{label:"Как основной",value:"heading"},...FONT_OPTIONS],getValue:()=>current.resources[item.property],setValue:value=>{if(value==="heading"||value in THEMES){current.resources[item.property]=value;globalThis.localStorage?.setItem(item.storage,value);}}})),
-        {type:"action",key:"reset-style",label:"Вернуть рекомендуемое оформление",onClick:()=>{for(const [property,key,value] of [["theme",FONT_PREFERENCE_KEY,"ruslan"],["bodyTheme",BODY_PREFERENCE_KEY,"shantell"],["dialogTheme",DIALOG_PREFERENCE_KEY,"nunito"]]){current.resources[property]=value;globalThis.localStorage?.setItem(key,value);}}}
+        ...FONT_SLOTS.map(slot=>({type:"select",key:"font-slot-"+slot.key,label:slot.label,description:slot.description,options:FONT_OPTIONS,getValue:()=>fontSlotChoice(current.resources,slot.key),setValue:value=>{
+          try { setFontSlot(current.resources,slot.key,value,FONT_OPTIONS); }
+          catch (_) { ctx.log.warn("Шрифт изменён на текущий запуск; сохранить настройку не удалось."); }
+        }})),
+        {type:"action",key:"reset-style",label:"Вернуть рекомендуемое оформление",onClick:()=>{
+          try { resetFontSlots(current.resources); }
+          catch (_) { ctx.log.warn("Рекомендуемые шрифты применены; сохранить настройку не удалось."); }
+        }}
 
       ] }, { title: "Размер текста", items: [
         { type: "number", key: "size-percent", label: "Общий размер, %", description: "Рекомендуется 68. Длинные заголовки и подписи переносятся, если в блоке хватает высоты.", min: 50, max: 80, step: 1, getValue: () => current.resources.percent, setValue: setPercent },
@@ -1130,12 +1274,18 @@ export default {
         {type:"select",key:"powerup-mode",label:"Режим читов",options:[{label:"Без читов",value:"off"},{label:"Разрешить читы",value:"native"},{label:"За монеты",value:"coins"}],getValue:()=>current.paid.preferences.mode,setValue:v=>{current.paid.setMode(v);pricesExpanded=false;}},
         {type:"toggle",key:"show-prices",label:"Настроить стоимость усилений",visible:()=>current.paid.preferences.mode==="coins",getValue:()=>pricesExpanded,setValue:v=>{pricesExpanded=!!v;}},
         ...Object.entries({snow:"Снежки",toss:"Отбрасывание",zap:"Молния",flame:"Огонь",cherry:"Вишенка",food:"Одна подкормка"}).map(([key,label])=>({type:"number",key:"price-"+key,label:label+" — монеты",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,min:1,max:2147483647,step:1,getValue:()=>current.paid.preferences.prices[key],setValue:v=>current.paid.setPrice(key,v)})),
-        {type:"action",key:"reset-prices",label:"Вернуть цены по умолчанию",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,onClick:()=>current.paid.resetPrices()}
-      ]},{title:"Исправления игры",items:[
-        {type:"toggle",key:"planning-boost-fix",label:"Убирать копии от начального буста до старта раунда",description:"Во время подготовки буст из сада или за алмазы расходуется по игровой логике, но не создаёт копии. После запуска раунда копии и удобрение листиком действуют как обычно.",getValue:()=>current.planning.enabled,setValue:v=>current.planning.setEnabled(v)}
+        {type:"action",key:"reset-prices",label:"Вернуть цены по умолчанию",visible:()=>current.paid.preferences.mode==="coins"&&pricesExpanded,onClick:()=>current.paid.resetPrices()},
+        {type:"toggle",key:"show-auto-collect",label:"Настроить автоподбор предметов",description:"Открывает выбор предметов. Скрытие настроек сохраняет выбранные галочки и не отключает автоподбор.",getValue:()=>autoExpanded,setValue:v=>{autoExpanded=!!v;}},
+        {type:"toggle",key:"auto-collect-other",label:"Автоподбор прочего дропа",visible:()=>autoExpanded,description:"Монеты, алмазы, ростки и билеты. Солнце и листики подкормки включаются отдельно. Работает также для монет и алмазов в саду.",getValue:()=>current.autoCollect.preferences.other,setValue:v=>current.autoCollect.setEnabled("other",v)},
+        {type:"toggle",key:"auto-collect-sun",label:"Автоподбор солнца",visible:()=>autoExpanded,description:"Собирает обычное солнце штатным способом. Опасные солнечные бомбы не активирует.",getValue:()=>current.autoCollect.preferences.sun,setValue:v=>current.autoCollect.setEnabled("sun",v)},
+        {type:"toggle",key:"auto-collect-plantfood",label:"Автоподбор листиков подкормки",visible:()=>autoExpanded,description:"Собирает листики, когда в банке есть место. Подкормку на растения не расходует.",getValue:()=>current.autoCollect.preferences.plantfood,setValue:v=>current.autoCollect.setEnabled("plantfood",v)}
+      ]},{title:"Улучшения игры",items:[
+        {type:"toggle",key:"planning-boost-fix",label:"Убирать копии от начального буста до старта раунда",description:"Во время подготовки буст из сада или за алмазы расходуется по игровой логике, но не создаёт копии. После запуска раунда копии и удобрение листиком действуют как обычно.",getValue:()=>current.planning.enabled,setValue:v=>current.planning.setEnabled(v)},
+        {type:"toggle",key:"custom-game-speed",label:"Изменить стандартный множитель ускорения",description:"Заменяет ускорение штатной кнопки выбранным множителем. Пока ускорение выключено, скорость остаётся обычной.",getValue:()=>current.speed.enabled,setValue:v=>current.speed.setEnabled(v)},
+        {type:"number",key:"game-speed-multiplier",label:"Множитель ускорения, ×",description:"От 1× до 10× с шагом 0.1. Можно вводить точку или запятую и подтверждать Enter. При включённом ускорении новое значение применяется сразу, при обычной скорости — после нажатия кнопки ускорения. Пауза и автоматическое отключение сохраняются.",visible:()=>current.speed.enabled,min:1,max:10,step:0.1,getValue:()=>current.speed.multiplier,setValue:v=>current.speed.setMultiplier(v)}
       ]}]
-    });
-    current.preview.start();
+    }));
+    current.preview.start();current.speedView.start();
     if (!current.resources.custom) ctx.ui.toast("Встроенный шрифт не загружен; используется Arial. Подробности в Log.", "warning");
   }
 };
