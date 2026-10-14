@@ -1,5 +1,14 @@
 # Changelog / Изменения
 
+## 1.0.3 — updated build, 2026-10-14 / обновлённая сборка
+
+The version number is unchanged. Included accumulated local fixes: stable level captions, zombie-preview placement, aligned objective bullets, native wallet display on booster hover, costume/shop layout, Plant Food controlled only by its own pickup switch, and safe cancellation of destroyed power-ups. Game/GP-Next diagnostics now accumulate in one Gardendless-debug.txt file.
+
+Partially restored Vasebreaker is distributed separately: 12 regular + 12 endless levels in 12 worlds; zero starting sun, randomized plant/zombie contents, sun and Plant Food in vases, explosion interactions and occasional Plantern. Endless rounds clear the previous board and grow the right-hand vase band from 2 to 5 columns. Ten-second inactivity opening warns for the final five seconds. Includes world-specific Gargantuars, no graves over vases, corrected Plantern closing, SporeShroom clone cleanup, late Pharaoh guards and native projectile-pool preservation. Sky City is excluded. Rules retain version 1.2.0.
+
+Главная страница и релиз сокращены, архив вазобоя и инструкция добавлены отдельно. Пример шрифтов сохранён; игровые снимки остались на сайте. SEO-описание, темы, адреса, карта сайта и метаданные сохранены. Полного ручного прохождения всех режимов не было.
+
+
 ## 1.0.3 — 2026-10-11
 
 - GP-Next 1.5.4/1.5.5 stays in English independently of the chosen game language. The mod discovers the loaded language module instead of a fixed old filename.

@@ -1,0 +1,416 @@
+{
+  "#comment": "Glass Garden Vasebreaker Endless 07 - Frostbite Caves",
+  "Information": {
+    "uuid": "dbb82fe5-7d7f-55c0-8836-7fe575882496",
+    "name": {
+      "ru": "Вазобой ∞ 7: Ледник",
+      "en": "Vasebreaker ∞ 7: Frostbite Caves"
+    },
+    "Author": "Glass Garden / Осколки сада",
+    "Introduction": {
+      "ru": "Разбейте все вазы. Победите всех зомби.",
+      "en": "Break all the vases. Defeat all the zombies."
+    },
+    "GameVersion": "0.15.0",
+    "Version": "1.1",
+    "CreatedAt": "2026-10-11",
+    "UpdatedAt": "2026-10-12",
+    "Difficulty": "Hard Endless",
+    "Category": "Vasebreaker",
+    "RequiredLocalMod": "local.gardendless.vase-chaos-rules",
+    "RequiredLocalModVersion": ">=1.2.0"
+  },
+  "objects": [
+    {
+      "objclass": "LevelDefinition",
+      "objdata": {
+        "Name": "Вазобой ∞ 7: Ледник",
+        "Description": "Разбейте все вазы. Побеждайте зомби.",
+        "LevelNumber": 19,
+        "StageModule": "RTID(IceageStage@LevelModules)",
+        "Loot": "RTID(DefaultLoot@LevelModules)",
+        "Modules": [
+          "RTID(VaseChaos07Intro@CurrentLevel)",
+          "RTID(ZombiesDeadWinCon@LevelModules)",
+          "RTID(DefaultZombieWinCondition@LevelModules)",
+          "RTID(VaseChaos07Bank@CurrentLevel)",
+          "RTID(VaseChaos07NoWaves@CurrentLevel)",
+          "RTID(VaseChaos07Goals@CurrentLevel)",
+          "RTID(VaseChaos07Vases@CurrentLevel)"
+        ],
+        "IsVasebreaker": true,
+        "StartingSun": 0,
+        "MusicType": "MiniGame_B",
+        "ForceToWorldMap": false,
+        "RepeatPlayForceToWorldMap": false,
+        "VaseChaosRules": {
+          "Ruleset": "glass-garden-chaos-1",
+          "SunVasesMin": 3,
+          "SunVasesMax": 4,
+          "ExtraZombie": "iceage",
+          "Endless": true,
+          "EndlessPlantPool": [
+            "threepeater",
+            "bloomerang",
+            "bonkchoy",
+            "cabbagepult",
+            "repeater",
+            "wallnut",
+            "iceburg",
+            "spikeweed",
+            "potatomine",
+            "splitpea",
+            "torchwood",
+            "starfruit",
+            "peapod",
+            "snowpea",
+            "cactus",
+            "primalpeashooter",
+            "tallnut",
+            "chardguard",
+            "kernelpult",
+            "laser_bean",
+            "lightningreed",
+            "redstinger",
+            "citron",
+            "electricpeashooter",
+            "snappea",
+            "coconutcannon",
+            "sapfling",
+            "peanut",
+            "endurian",
+            "fumeshroom",
+            "scaredyshroom",
+            "magnetshroom",
+            "hypnoshroom",
+            "sporeshroom",
+            "gloomshroom",
+            "pumpkin",
+            "garlic",
+            "puffshroom",
+            "poisonpeashooter",
+            "shadowshroom",
+            "chomper",
+            "firepeashooter",
+            "pepperpult",
+            "coldsnapdragon",
+            "akee",
+            "snapdragon",
+            "primalwallnut",
+            "spikerock",
+            "hurrikale",
+            "banana",
+            "guacodile",
+            "stunion",
+            "primalpotatomine",
+            "phatbeet",
+            "bowlingbulb",
+            "celerystalker",
+            "wasabiwhip",
+            "homingthistle",
+            "mirrornut",
+            "dandelion",
+            "applemortar",
+            "loquat",
+            "wintermelon",
+            "grapeshot",
+            "dusklobber",
+            "explodeonut",
+            "plantern"
+          ],
+          "VasePlantPool": [
+            "threepeater",
+            "bloomerang",
+            "bonkchoy",
+            "cabbagepult",
+            "repeater",
+            "wallnut",
+            "iceburg",
+            "spikeweed",
+            "potatomine",
+            "splitpea",
+            "torchwood",
+            "starfruit",
+            "peapod",
+            "snowpea",
+            "cactus",
+            "primalpeashooter",
+            "tallnut",
+            "chardguard",
+            "kernelpult",
+            "laser_bean",
+            "lightningreed",
+            "redstinger",
+            "citron",
+            "electricpeashooter",
+            "snappea",
+            "coconutcannon",
+            "sapfling",
+            "peanut",
+            "endurian",
+            "fumeshroom",
+            "scaredyshroom",
+            "magnetshroom",
+            "hypnoshroom",
+            "sporeshroom",
+            "gloomshroom",
+            "pumpkin",
+            "garlic",
+            "puffshroom",
+            "poisonpeashooter",
+            "shadowshroom",
+            "chomper",
+            "firepeashooter",
+            "pepperpult",
+            "coldsnapdragon",
+            "akee",
+            "snapdragon",
+            "primalwallnut",
+            "spikerock",
+            "hurrikale",
+            "banana",
+            "guacodile",
+            "stunion",
+            "primalpotatomine",
+            "phatbeet",
+            "bowlingbulb",
+            "celerystalker",
+            "wasabiwhip",
+            "homingthistle",
+            "mirrornut",
+            "dandelion",
+            "applemortar",
+            "loquat",
+            "wintermelon",
+            "grapeshot",
+            "dusklobber",
+            "explodeonut",
+            "plantern"
+          ],
+          "VaseZombiePool": [
+            "iceage",
+            "iceage_armor1",
+            "iceage_armor2",
+            "iceage_armor3",
+            "iceage_troglobite",
+            "iceage_hunter",
+            "iceage_dodo",
+            "iceage_weaselhoarder"
+          ],
+          "EndlessVasePreset": {
+            "MinColumnIndex": 2,
+            "MaxColumnIndex": 8,
+            "NumColoredPlantVases": 6,
+            "NumColoredZombieVases": 0,
+            "ZombieVasesZombieType": "iceage_gargantuar",
+            "SunVasesSunValue": 75,
+            "PlantfoodVasesPlantfoodCount": 1,
+            "Vases": [
+              {
+                "PlantTypeName": "firepeashooter",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "pepperpult",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "coldsnapdragon",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "bonkchoy",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "endurian",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "akee",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "repeater",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "snapdragon",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "primalwallnut",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "potatomine",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "spikerock",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "hurrikale",
+                "Count": 1
+              },
+              {
+                "ZombieTypeName": "iceage",
+                "Count": 5
+              },
+              {
+                "ZombieTypeName": "iceage_armor1",
+                "Count": 6
+              },
+              {
+                "ZombieTypeName": "iceage_armor2",
+                "Count": 3
+              },
+              {
+                "ZombieTypeName": "iceage_troglobite",
+                "Count": 2
+              },
+              {
+                "ZombieTypeName": "iceage_hunter",
+                "Count": 2
+              },
+              {
+                "CollectableTypeName": "sun",
+                "Count": 4
+              },
+              {
+                "CollectableTypeName": "plantfood",
+                "Count": 1
+              }
+            ]
+          },
+          "AutoOpenFirst": 10,
+          "AutoOpenEvery": 10
+        }
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos07Intro"
+      ],
+      "objclass": "LevelIntroProperties",
+      "objdata": {
+        "PanStartOffset": 0,
+        "PanStreetOffset": 0,
+        "PanEndOffset": 0,
+        "PanRightDuration": 0,
+        "PanLeftDuration": 0,
+        "PanMoveRightTime": 0,
+        "PanMoveLeftTime": 0,
+        "AdditionalStartingSun": 0,
+        "SkipShowingStreet": true,
+        "ZombiePreviewOff": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos07Bank"
+      ],
+      "objclass": "SeedBankProperties",
+      "objdata": {
+        "SelectionMethod": "preset",
+        "PresetPlantList": [
+          {
+            "PlantType": "jalapeno",
+            "Level": -1,
+            "ForceBoosted": false
+          },
+          {
+            "PlantType": "cherry_bomb",
+            "Level": -1,
+            "ForceBoosted": false
+          }
+        ],
+        "SuppressObjectiveTip": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos07NoWaves"
+      ],
+      "objclass": "WaveManagerProperties",
+      "objdata": {
+        "WaveCount": 0,
+        "FlagWaveInterval": 1,
+        "SuppressFlagZombie": true,
+        "Waves": []
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos07Goals"
+      ],
+      "objclass": "StarChallengeBeatTheLevelProps",
+      "objdata": {
+        "Descriptions": [
+          "Пройдите как можно больше раундов.",
+          "Разбейте все вазы и победите зомби.",
+          "Через 10 секунд бездействия случайная ваза разобьётся."
+        ]
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos07Vases"
+      ],
+      "objclass": "VaseBreakerPresetProperties",
+      "objdata": {
+        "MinColumnIndex": 7,
+        "MaxColumnIndex": 8,
+        "NumColoredPlantVases": 1,
+        "NumColoredZombieVases": 0,
+        "ZombieVasesZombieType": "iceage_gargantuar",
+        "SunVasesSunValue": 75,
+        "PlantfoodVasesPlantfoodCount": 1,
+        "Vases": [
+          {
+            "PlantTypeName": "firepeashooter",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "pepperpult",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "coldsnapdragon",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "bonkchoy",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "endurian",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "akee",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "iceage_troglobite",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "iceage_hunter",
+            "Count": 1
+          },
+          {
+            "CollectableTypeName": "sun",
+            "Count": 1
+          },
+          {
+            "CollectableTypeName": "plantfood",
+            "Count": 1
+          }
+        ]
+      }
+    }
+  ],
+  "version": 1
+}

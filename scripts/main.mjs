@@ -79,6 +79,8 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
   const locked=()=>preferences.mode!=="native";
   const level=()=>LevelPlay?.component;
   const current=()=>Players?.currentPlayer;
+  const alive=value=>!!value&&value.isValid!==false&&value.node?.isValid!==false&&
+    (typeof cc.isValid!=="function"||(cc.isValid(value,true)&&(!value.node||cc.isValid(value.node,true))));
   const balance=()=>Number.isSafeInteger(current()?.coin)&&current().coin>=0?current().coin:0;
   const allowedPower=p=>!!level()&&!level().PowerUpsForceHide&&(!!level().PowerUpsForceShow||(!!level().showPowerUps&&current()?.features?.feature_powerup===true))&&p?.shown;
   const required=p=>p?.mode===1||!!level()?.PowerUpsForceShow&&(!!level()?.PowerUpsTip||current()?.features?.feature_powerup!==true);
@@ -91,9 +93,13 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     undo.push(()=>{if(obj[key]===replacement)obj[key]=original;});
   }
   function cancel(p=PowerupFingers?.component) {
-    if(!p)return;p.countDown=0;p.mousePushed=false;leases.delete(p);
-
-    try{Promise.resolve(p.tryChangingIndex?.(-1,null,true)).catch(e=>log.warn?.(String(e)));}catch(e){log.warn?.(String(e));}
+    if(!p)return;leases.delete(p);
+    // Cocos clears object fields on destruction while the static component
+    // reference may still point to the old instance during scene changes.
+    if(!alive(p))return;
+    p.countDown=0;p.mousePushed=false;
+    const report=error=>log.warn?.(`Сброс усиления (индекс ${p.index ?? "?"}): ${String(error?.stack??error)}`);
+    try{Promise.resolve(p.tryChangingIndex?.(-1,null,true)).catch(report);}catch(error){report(error);}
   }
   function syncCoin(value,animate=false) {
     const c=CoinCount?.component;
@@ -104,7 +110,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     const collector=CoinCollecterInGame?.component;
 
 
-    if(collector?.node&&collector.isValid!==false)collector.hidden=false;
+    if(collector?.node&&collector.isValid!==false&&collector.node.activeInHierarchy!==false)collector.hidden=false;
   }
   function rejected() {
     const now=globalThis.performance?.now?.()??Date.now();
@@ -152,6 +158,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
   }
   patch(SunCount?.prototype,"onAddDown",original=>function(...args){if(locked())return;return original.apply(this,args);});
   patch(PowerupFingers?.prototype,"powerUpStart",original=>function(...args) {
+    if(!alive(this))return;
     if(this.countDown>0||busy)return;
     if(locked()&&preferences.mode!=="coins"&&!required(this)){cancel(this);return;}
     if(preferences.mode!=="coins")return original.apply(this,args);
@@ -163,6 +170,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     return original.apply(this,args);
   });
   patch(PowerupFingers?.prototype,"tryChangingIndex",original=>function(index,...args) {
+    if(!alive(this))return Promise.resolve();
     if(index===-1&&this.countDown<=0)leases.delete(this);
     if(preferences.mode==="coins"&&index>=0&&index<=4){if(!allowedPower(this))return;if(!required(this)&&balance()<preferences.prices[INDEX[index]]){rejected();return;}}
     return original.call(this,index,...args);
@@ -184,6 +192,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     return original.call(this,event,...args);
   });
   patch(PowerupFingers?.prototype,"show",original=>function(...args) {
+    if(!alive(this))return;
     const l=level();
     if(preferences.mode!=="coins"||!l||l.PowerUpsForceHide||required(this))return original.apply(this,args);
     if(!l.showPowerUps||current()?.features?.feature_powerup!==true)return;
@@ -254,7 +263,13 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     const animate=value=>{s.tween?.stop?.();if(node.isValid===false)return;const target=new cc.Vec3(s.base.x*value,s.base.y*value,s.base.z);if(cc.tween)s.tween=cc.tween(node).to(.09,{scale:target},{easing:"quadOut"}).start();else node.setScale(target);};
     const bind=(event,fn)=>{if(!event)return;node.on(event,fn);s.handlers.push([event,fn]);};
     const events=cc.Node.EventType;
-    bind(events.MOUSE_ENTER,()=>{s.hover=true;if(enabled())animate(1.045);});
+    bind(events.MOUSE_ENTER,()=>{
+      s.hover=true;if(enabled())animate(1.045);
+      if(!disposed&&node.activeInHierarchy!==false&&preferences.mode==="coins"&&allowedPower(owner)&&!required(owner)&&owner.countDown<=0) {
+        // The native setter reveals coins and gems and restarts its own hide countdown.
+        try{revealWallet();}catch(error){log.warn?.(`Показ баланса: ${String(error?.message??error)}`);}
+      }
+    });
     bind(events.MOUSE_LEAVE,()=>{s.hover=false;animate(1);});
     bind(events.MOUSE_DOWN,event=>{if(event?.getButton?.()!==0)return;if(enabled())animate(.96);else if(preferences.mode==="coins"&&allowedPower(owner)&&owner.countDown<=0&&balance()<preferences.prices[key])rejected();});
     bind(events.MOUSE_UP,()=>animate(enabled()&&s.hover?1.045:1));
@@ -271,7 +286,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     if(option){remember(option);option.active=locked()?false:nodes.get(option).active;if(!SettingWindow.allowCheat&&cc.Color)sw.allowCheatSprite.color=new cc.Color(255,0,0,255);}
     const sun=SunCount?.component?.addButton;if(sun){bindExistingCallback(SunCount.component,"onAddDown",sun);remember(sun);sun.active=locked()?false:nodes.get(sun).active;}
     const p=PowerupFingers?.component,food=PlantFoodCount?.component,paid=preferences.mode==="coins";
-    if(p&&p.isValid!==false){
+    if(alive(p)){
       if(locked()&&!paid&&!required(p))p.hide?.();
       if(paid&&!level()?.PowerUpsForceHide&&!required(p))p.show?.();
       if(paid&&required(p))for(const prop of ["fireButton","snowButton","tossButton","zapButton","cherryButton"]){const b=badges.get(p[prop]?.node);if(b)b.node.active=false;}
@@ -471,6 +486,16 @@ export function createUiController(cc,native={},log={}) {
       if(!node||!nodes.includes(node))continue;
       insetWidget(node,['right','top']);
     }
+    const preview=native.LevelPlay?.component?.viewButton?.node??nodes.find(node=>node.name==='lawnViewer'&&/^(Canvas|UIInGameUpper)$/.test(node.parent?.name??''));
+    if(preview&&nodes.includes(preview)&&preview!==pause&&preview.activeInHierarchy!==false) {
+      // Its animated artwork and mouse listener move together with the native node.
+      const widget=comp(preview,cc,'Widget');
+      if(widget?.enabled)insetWidget(preview,['right','top'],1,8);
+      else {
+        const state=own(preview),parentScale=preview.parent?.worldScale??{x:1,y:1};
+        preview.setPosition(state.position.x-8/Math.abs(parentScale.x),state.position.y-8/Math.abs(parentScale.y),state.position.z);
+      }
+    }
     const shovelControl=native.ShovelUIController?.shovelUI;
     const shovel=shovelControl?.node??nodes.find(node=>node.name==='Shovel'&&node.parent?.name==='UIInGame');
     if(shovel&&nodes.includes(shovel)&&shovel.activeInHierarchy!==false&&shovelControl?.gameStarted!==false&&Math.abs(shovel.worldPosition?.x??0)<2000) {
@@ -543,7 +568,9 @@ export function createUiController(cc,native={},log={}) {
         else count.setPosition(count.position.x,s.position.y+12/Math.abs(count.parent.worldScale.y),count.position.z);
       }
       if(z?.currentZen?.node)overview(z);
-      for(const c of native.Commodity?scene?.getComponentsInChildren?.(native.Commodity)??[]:[]) {
+      const storeCards=new Set();
+      for(const type of [native.Commodity,native.CostumeSeller])if(type)for(const card of scene?.getComponentsInChildren?.(type)??[])storeCards.add(card);
+      for(const c of storeCards) {
         const label=c.buyButtonLabel,black=c.buyButtonSprite?.node;
         if(!label?.node||!black)continue;
         const layout=comp(black,cc,"Layout"),card=rect(c.node),buttonUi=comp(black,cc,"UITransform");
@@ -1043,12 +1070,17 @@ export function createAutoCollectController(cc, native, log = {}, storage) {
     try { (storage ?? globalThis.localStorage)?.setItem(AUTO_COLLECT_KEY, JSON.stringify({ enabled, ...preferences })); }
     catch (_) { log.warn?.("Автоподбор изменён на текущий запуск; сохранить настройку не удалось."); }
   }
+  function pickupType(drop, garden) {
+    const type = typeof drop.DroppingType === "string" ? drop.DroppingType.trim().toLowerCase() : "";
+    if (type === "plantfood") return "plantfood";
+    return garden ? "other" : type === "sun" ? "sun" : type ? "other" : null;
+  }
   function collect(drop, dt, garden) {
     if (disposed || !enabled || !(dt > 0) || drop.collected || drop.disabled || drop.fadingAway || drop.node?.isValid === false ||
       drop.node?.activeInHierarchy === false || drop.enabled === false || drop.mouseListen === false) return;
     const level = native.LevelPlay?.component, ui = native.UIInGame?.component;
     if (!garden && (!level || level.gameOver || level.gameWon || level.gameLost || ui?.paused || ui?.exitNextTick || ui?.restartNextTick || ui?.sceneEnabled === false)) return;
-    const type = garden ? "other" : drop.DroppingType === "sun" ? "sun" : drop.DroppingType === "plantfood" ? "plantfood" : drop.DroppingType ? "other" : null;
+    const type = pickupType(drop, garden);
     if (!type || !preferences[type] || typeof drop.collect !== "function" || typeof drop.collectable !== "function" || !drop.collectable()) return;
     if (!drop.ui || drop.ui.isValid === false) return;
     if (type === "plantfood") {
@@ -1062,7 +1094,23 @@ export function createAutoCollectController(cc, native, log = {}, storage) {
     bound.add(proto);
     const original = proto[key], own = Object.getOwnPropertyDescriptor(proto, key);
     const replacement = function(dt, ...args) {
-      const result = original.call(this, dt, ...args);
+      // Native level rules can collect before our post-update preference check.
+      // Mask only their automatic Plant Food entry during this synchronous
+      // update. Mouse pickup still runs normally, and the list is restored.
+      const list = !garden && pickupType(this, false) === "plantfood" &&
+        (!enabled || !preferences.plantfood) ? native.LevelPlay?.component?.AutoCollectList : null;
+      const removed = [];
+      if (Array.isArray(list)) {
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (typeof list[i] === "string" && list[i].trim().toLowerCase() === "plantfood") {
+            removed.push([i, list[i]]);
+            list.splice(i, 1);
+          }
+        }
+      }
+      let result;
+      try { result = original.call(this, dt, ...args); }
+      finally { for (const [i, value] of removed.reverse()) list.splice(i, 0, value); }
       try { collect(this, dt, garden); }
       catch (error) { if (!warned) { warned = true; log.warn?.(`Автоподбор: ${String(error?.message ?? error)}`); } }
       return result;
@@ -1129,6 +1177,180 @@ export function balancedLines(text,width,size,measure,style) {
   }
   return result;
 }
+
+// BEGIN_SESSION_LOG
+export const SESSION_LOG_RELATIVE_PATH = "gp-next/logs/Gardendless-debug.txt";
+
+export function createSessionLog(ctx = {}, options = {}) {
+  const host = options.host ?? globalThis;
+  const target = options.window ?? host.window ?? host;
+  const output = options.console ?? host.console;
+  const now = options.now ?? (() => Date.now());
+  const invoke = options.invoke ?? target.__TAURI_INTERNALS__?.invoke?.bind(target.__TAURI_INTERNALS__);
+  const restorers = [], pending = [], capturedGp = new Map();
+  let started = false, disposed = false, inFlight = null, timer = null, debugDepth = 0, loadingHistory = true;
+  let filePath = SESSION_LOG_RELATIVE_PATH, failure = "", savedLines = 0, ready = Promise.resolve(false);
+  const originalWarn = output?.warn?.bind(output);
+  const reportFailure = () => {
+    try {
+      if (ctx.log?.warn) ctx.log.warn(`Не удалось автоматически записать TXT-журнал. Используйте «Сохранить копию журнала TXT». ${failure}`);
+      else originalWarn?.("[Gardendless log] Автозапись недоступна:", failure);
+    } catch {}
+  };
+  const stringify = value => {
+    if (value instanceof Error || (value && typeof value === "object" && typeof value.stack === "string")) {
+      return value.stack ?? String(value.message ?? value);
+    }
+    if (typeof value === "string") return value;
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(value, (_key, item) => {
+        if (typeof item === "bigint") return item.toString();
+        if (item instanceof Error) return {name:item.name, message:item.message, stack:item.stack};
+        if (item && typeof item === "object") {
+          if (seen.has(item)) return "[Circular]";
+          seen.add(item);
+        }
+        return item;
+      }) ?? String(value);
+    } catch { return String(value); }
+  };
+  const record = (level, source, message, time = now()) => {
+    if (disposed) return;
+    const timestamp = new Date(Number.isFinite(Number(time)) ? Number(time) : now()).toISOString();
+    pending.push(`[${timestamp}] [${level.toUpperCase()}] [${source}] ${String(message).replace(/\r?\n/g, "\r\n")}\r\n`);
+    if (level === "error" || pending.length >= 128) queueMicrotask(() => {void flush();});
+  };
+  const captureConsole = (level, args) => {
+    const prefix = /^\[GP Next:([^\]]+)\]/.exec(String(args[0] ?? ""));
+    if (prefix) {
+      if (debugDepth) return;
+      const message = args.slice(1).map(stringify).join(" ");
+      if (loadingHistory) capturedGp.set(`${prefix[1]}|${level}|${message}`, now());
+      record(level, `GP Next:${prefix[1]}`, message);
+    } else record(level, "game", args.map(stringify).join(" "));
+  };
+  async function flush() {
+    if (inFlight) {await inFlight; if (!failure && pending.length) return flush(); return !failure;}
+    if (!pending.length || failure) return !failure;
+    const batch = pending.splice(0);
+    inFlight = (async () => {
+      if (!(await ready)) {pending.unshift(...batch);return false;}
+      try {
+        // Same Tauri fs transport used by GP Next's own mod-data storage.
+        // Append is documented at https://v2.tauri.app/reference/javascript/fs/.
+        await invoke("plugin:fs|write_text_file", new TextEncoder().encode(batch.join("")), {
+          headers:{path:encodeURIComponent(SESSION_LOG_RELATIVE_PATH),options:JSON.stringify({baseDir:14,append:true,create:true})}
+        });
+        savedLines += batch.length;
+        return true;
+      } catch (error) {
+        pending.unshift(...batch);
+        failure = stringify(error);
+        reportFailure();
+        return false;
+      }
+    })();
+    try {return await inFlight;} finally {inFlight = null;}
+  }
+  async function loadHistory() {
+    try {
+      const load = options.loadLogger ?? (() => {
+        if (!invoke || !host.location?.href) return null;
+        const url = new URL("/assets/logger-B5QI9Y1q.js", host.location.href).href;
+        return import(url);
+      });
+      const module = await load();
+      if (disposed || !module) return;
+      for (const entry of module.n?.() ?? []) {
+        const level = String(entry.level ?? "info"), message = String(entry.msg ?? "");
+        const key = `${entry.module}|${level}|${message}`;
+        if (Math.abs((capturedGp.get(key) ?? -Infinity) - entry.time) > 3000) record(level, `GP Next:${entry.module}`, message, entry.time);
+      }
+      // GP Next debug entries otherwise stay inside its 200-line UI buffer.
+      // Leave its single UI listener intact and preserve native console behavior.
+      const prototype = module.t?.prototype, original = prototype?.debug;
+      if (typeof original === "function") {
+        const wrapper = function (...args) {
+          try {record("debug", `GP Next:${this.module}`, args.map(stringify).join(" "));} catch {}
+          debugDepth++;
+          try {return original.apply(this, args);} finally {debugDepth--;}
+        };
+        prototype.debug = wrapper;
+        restorers.push(() => {if (prototype.debug === wrapper) prototype.debug = original;});
+      }
+      record("info", "journal", "Доступный журнал GP Next до загрузки мода добавлен.");
+    } catch (error) {record("warn", "journal", `Ранний журнал GP Next недоступен: ${stringify(error)}`);}
+    finally {loadingHistory = false;capturedGp.clear();}
+  }
+  function start() {
+    if (started) return;
+    started = true;
+    let platformVersion = "unknown";
+    try {platformVersion = ctx.compat?.getPlatformVersion?.() ?? target.gpNext?.version ?? "unknown";} catch {}
+    record("info", "session", `Gardendless: начало сеанса. GP Next ${platformVersion}; мод ${ctx.meta?.namespace ?? "russian-font-fix"} ${ctx.meta?.version ?? "1.0.3"}.`);
+    for (const method of ["log","info","warn","error","debug","trace","table","dir","assert"]) {
+      const original = output?.[method];
+      if (typeof original !== "function") continue;
+      const wrapper = function (...args) {
+        try {if (method !== "assert" || !args[0]) {
+          const level = method === "assert" ? "error" : ["warn","error","debug"].includes(method) ? method : "info";
+          captureConsole(level, method === "assert" ? args.slice(1) : args);
+        }} catch {} // A diagnostic hook must never break the game's console call.
+        return original.apply(this, args);
+      };
+      try {
+        output[method] = wrapper;
+        restorers.push(() => {if (output[method] === wrapper) output[method] = original;});
+      } catch {} // A console method may have been locked by another mod.
+    }
+    const listen = (event, listener, capture = false) => {
+      target.addEventListener?.(event, listener, capture);
+      restorers.push(() => target.removeEventListener?.(event, listener, capture));
+    };
+    listen("error", event => record("error", "uncaught", `${stringify(event.error ?? event.message ?? "Resource load failed")} ${event.filename ?? event.target?.src ?? event.target?.href ?? ""}:${event.lineno ?? ""}:${event.colno ?? ""}`), true);
+    listen("unhandledrejection", event => record("error", "promise", stringify(event.reason)));
+    listen("pagehide", () => {void flush();});
+    ready = (async () => {
+      if (!invoke) {failure = "Автозапись TXT доступна в настольной версии игры. Используйте кнопку сохранения копии.";return false;}
+      try {
+        const root = await invoke("plugin:path|resolve_directory", {directory:14});
+        const separator = /^[A-Za-z]:|\\/.test(root) ? "\\" : "/";
+        filePath = String(root).replace(/[\\/]+$/, "") + separator + SESSION_LOG_RELATIVE_PATH.replace(/\//g, separator);
+        await invoke("plugin:fs|mkdir", {path:"gp-next/logs",options:{baseDir:14,recursive:true}});
+        return true;
+      } catch (error) {failure = stringify(error);reportFailure();return false;}
+    })();
+    void loadHistory();
+    if (options.autoFlush !== false) timer = host.setInterval?.(() => {void flush();}, 2000);
+    void ready.then(() => flush());
+  }
+  async function exportText() {
+    await flush();
+    if (savedLines) {
+      const disk = await invoke("plugin:fs|read_text_file", {path:SESSION_LOG_RELATIVE_PATH,options:{baseDir:14}});
+      return disk + pending.join("");
+    }
+    return pending.join("");
+  }
+  async function download() {
+    const text = await exportText();
+    const url = host.URL.createObjectURL(new Blob([text], {type:"text/plain;charset=utf-8"}));
+    const anchor = host.document.createElement("a");anchor.href = url;anchor.download = "Gardendless-debug.txt";
+    anchor.click();host.setTimeout(() => host.URL.revokeObjectURL(url), 60000);
+    return text;
+  }
+  async function dispose() {
+    if (disposed) return;
+    record("info", "session", "Конец сеанса сбора журнала.");
+    disposed = true;
+    if (timer !== null) host.clearInterval?.(timer);
+    for (const restore of restorers.reverse()) {try {restore();} catch {}}
+    await flush();
+  }
+  return {start,flush,exportText,download,dispose,get path(){return filePath;},get error(){return failure;},get savedLines(){return savedLines;}};
+}
+// END_SESSION_LOG
 
 const VERSION = "1.0.3";
 const RUSSIAN = /[\u0401\u0410-\u044f\u0451]/;
@@ -1241,7 +1463,7 @@ function russianTime(text) {
 
 
 export function createController(cc, resources, log = {}) {
-  const states = new Map(), controls = new Map(), richStates = new Map(), almanacLayouts = new Map(), timerNodes = new Map(), tipNodes=new Map(), measure = measurer(resources);
+  const states = new Map(), controls = new Map(), richStates = new Map(), almanacLayouts = new Map(), timerNodes = new Map(), tipNodes=new Map(), tipArmatures=new WeakMap(), objectiveIcons=new Map(), introButtonScales=new WeakMap(), measure = measurer(resources);
   let disposed = false, warned = false, affected = 0;
   const ancestor = (node, pattern) => { for (let n=node;n;n=n.parent) if(pattern.test(n.name ?? "")) return n; return null; };
 
@@ -1422,6 +1644,43 @@ export function createController(cc, resources, log = {}) {
     const group=root.getChildByName?.('BGT'),pictures=(group?.children??[]).filter(n=>n.name!=='BG'&&n.active!==false);
     return {group,pictures,width:pictures.length?120:0,height:pictures.length?112:0};
   }
+  function tipPictureBounds(picture){
+    const inverse=new cc.Mat4();cc.Mat4.invert(inverse,picture.worldMatrix);
+    const points=[];
+    const addPoint=(node,x,y)=>{const p=new cc.Vec3(x,y,0);cc.Vec3.transformMat4(p,p,node.worldMatrix);cc.Vec3.transformMat4(p,p,inverse);points.push(p);};
+    const add=(node,left,bottom,right,top)=>{
+      for(const [x,y] of [[left,bottom],[left,top],[right,bottom],[right,top]])addPoint(node,x,y);
+    };
+    const visit=node=>{
+      if(node.active===false)return;
+      const display=cc.dragonBones?.ArmatureDisplay?node.getComponent?.(cc.dragonBones.ArmatureDisplay):null;
+      const armature=display?.armature?.(),slots=armature?.getSlots?.()??[],key=slots.filter(s=>/COS\d/.test(s.name??'')).map(s=>`${s.name}:${s.displayIndex}`).join('|'),bounds=armature?.armatureData?.aabb;
+      let cached=display&&tipArmatures.get(display);
+      if(display&&(!cached||cached.armature!==armature||cached.key!==key)){
+        const vertices=[];
+        const collect=(armature,parent=null)=>{for(const slot of armature?.getSlots?.()??[]){
+          if(slot._visible===false||slot.displayIndex<0||slot._color?.a===0||!slot._matrix)continue;
+          const matrix=parent?cc.Mat4.multiply(new cc.Mat4(),parent,slot._matrix):slot._matrix;
+          if(slot.childArmature)collect(slot.childArmature,matrix);
+          else for(let i=0;i<(slot._localVertices?.length??0);i+=4){const p=new cc.Vec3(slot._localVertices[i],slot._localVertices[i+1],0);cc.Vec3.transformMat4(p,p,matrix);vertices.push(p);}
+        }};
+        collect(armature);
+        // Cache a pose for each costume so idle animation does not move the whole notification.
+        cached={armature,key,vertices};if(vertices.length)tipArmatures.set(display,cached);
+      }
+      if(cached?.vertices.length)for(const p of cached.vertices)addPoint(node,p.x,p.y);
+      // Before the first rendered pose, use the authored rectangle (DragonBones Y points down).
+      else if(bounds?.width>0&&bounds?.height>0)add(node,bounds.x,-bounds.y-bounds.height,bounds.x+bounds.width,-bounds.y);
+      else if(component(node,cc,'Sprite')){
+        const ui=transform(node,cc);if(ui?.width>0&&ui?.height>0){const a=ui.anchorPoint;add(node,-ui.width*a.x,-ui.height*a.y,ui.width*(1-a.x),ui.height*(1-a.y));}
+      }
+      for(const child of node.children??[])visit(child);
+    };
+    visit(picture);
+    if(!points.length){const ui=transform(picture,cc),width=positive(ui?.width,100),height=positive(ui?.height,100);return{width,height,x:0,y:0};}
+    const left=Math.min(...points.map(p=>p.x)),right=Math.max(...points.map(p=>p.x)),bottom=Math.min(...points.map(p=>p.y)),top=Math.max(...points.map(p=>p.y));
+    return{width:right-left,height:top-bottom,x:(left+right)/2,y:(bottom+top)/2};
+  }
   function rememberTip(node){
     if(!tipNodes.has(node)){const ui=transform(node,cc),w=component(node,cc,'Widget'),l=component(node,cc,'Layout');tipNodes.set(node,{size:ui?[ui.width,ui.height]:null,p:{...node.position},s:node.scale.clone(),parent:node.parent,sibling:node.getSiblingIndex?.(),w,we:w?.enabled,l,le:l?.enabled});}
     const snap=tipNodes.get(node);if(snap.l)snap.l.enabled=false;if(snap.w)snap.w.enabled=false;return snap;
@@ -1441,11 +1700,17 @@ export function createController(cc, resources, log = {}) {
     transform(root,cc)?.setContentSize(width,height);target.setPosition(info.width/2,0,number(label.node.position.z));
     if(info.group){info.group.setPosition(0,0,number(info.group.position.z));transform(info.group,cc)?.setContentSize(width,height);}
     if(bg){transform(bg,cc)?.setContentSize(width,height);bg.setPosition(0,0,number(bg.position.z));}
-    for(const picture of info.pictures){const saved=rememberTip(picture),u=transform(picture,cc),factor=Math.min(1,100/(positive(u?.width,100)*positive(saved.s.x)),100/(positive(u?.height,100)*positive(saved.s.y)));picture.setScale(saved.s.x*factor,saved.s.y*factor,saved.s.z);picture.setPosition(-width/2+info.width/2+16,0,saved.p.z);}
+    for(const picture of info.pictures){const saved=rememberTip(picture),bounds=tipPictureBounds(picture),factor=Math.min(1,100/(positive(bounds.width,100)*positive(saved.s.x)),100/(positive(bounds.height,100)*positive(saved.s.y))),sx=saved.s.x*factor,sy=saved.s.y*factor;picture.setScale(sx,sy,saved.s.z);picture.setPosition(-width/2+info.width/2+16-bounds.x*sx,-bounds.y*sy,saved.p.z);}
     if(screen){
-      const nodes=[];const visit=n=>{nodes.push(n);for(const c of n.children??[])visit(c);};visit(scene);
-      const obstacles=nodes.filter(n=>n.activeInHierarchy!==false&&(n.name==='LODEntrance'||component(n,cc,'Button'))).map(n=>box(n,cc)).filter(b=>b&&b.width<screen.width*.4&&b.height<screen.height*.25);
-      const bottom=Math.max(screen.bottom+16,...obstacles.filter(b=>b.bottom<screen.bottom+screen.height*.35).map(b=>b.top+14));
+      const key=JSON.stringify([desired.string,width,height,screen.left,screen.right,screen.bottom,screen.top,rs.x,rs.y,root.parent?.uuid]);
+      if(state.tipPlacement?.key!==key){
+        const nodes=[],classes=['PlantCardDropped','dropping','Plant','Zombie','Vase'].map(name=>cc.js?.getClassByName?.(name)).filter(Boolean);
+        const visit=n=>{nodes.push(n);for(const c of n.children??[])visit(c);};visit(scene);
+        const floating=n=>{for(let p=n;p&&p!==scene;p=p.parent){if(/^(?:PlantCardDropped|DroppedCards|plantInHandLayer|cardsLayer)$/i.test(p.name??'')||classes.some(type=>p.getComponent?.(type)))return true;}return false;};
+        const obstacles=nodes.filter(n=>n.activeInHierarchy!==false&&!floating(n)&&(n.name==='LODEntrance'||component(n,cc,'Button'))).map(n=>box(n,cc)).filter(b=>b&&b.width<screen.width*.4&&b.height<screen.height*.25);
+        state.tipPlacement={key,bottom:Math.max(screen.bottom+16,...obstacles.filter(b=>b.bottom<screen.bottom+screen.height*.35).map(b=>b.top+14))};
+      }
+      const bottom=state.tipPlacement.bottom;
       const y=Math.min(screen.top-12-height*rs.y/2,bottom+height*rs.y/2);root.setWorldPosition((screen.left+screen.right)/2,y,root.worldPosition.z);
     }
   }
@@ -1714,6 +1979,72 @@ export function createController(cc, resources, log = {}) {
     try{inkCanvas??=globalThis.document?.createElement("canvas").getContext("2d");if(inkCanvas){inkCanvas.font=`${size}px "${fontFor(resources,style)}"`;return {ascent:Math.max(...lines.map(t=>inkCanvas.measureText(t).actualBoundingBoxAscent??size)),descent:Math.max(...lines.map(t=>inkCanvas.measureText(t).actualBoundingBoxDescent??size*.3))};}}catch(_){}
     return {ascent:size,descent:size*.35};
   }
+  function inkOffsets(label,desired) {
+    const {fontSize:size,lineHeight,lines,geometry,style}=desired;
+    const baselineRatio=number(cc.BASELINE_RATIO,.26),span=(lines.length-1)*lineHeight;
+    // Cocos TTF middle alignment positions the baseline using font size rather than glyph height.
+    const baseline=(geometry.height-span+size*(1-baselineRatio))/2;
+    const top=geometry.height*(1-number(transform(label.node,cc)?.anchorPoint?.y,.5));
+    const first=inkBounds([lines[0]],style,size),last=inkBounds([lines.at(-1)],style,size);
+    return {firstCenter:top-baseline+(first.ascent-first.descent)/2,bottom:top-baseline-span-last.descent};
+  }
+  function placeIntro(label,state,desired,scene) {
+    const node=label.node,screen=screenBox(node),ns=scale(node),ps=scale(node.parent),buttons=new Set(),containers=[];
+    const powerClass=cc.js?.getClassByName?.('PowerupFingers');
+    const visit=n=>{
+      if(n.activeInHierarchy===false)return;
+      const power=powerClass?n.getComponent?.(powerClass):null;
+      if(power)for(const field of ['fireButton','snowButton','tossButton','zapButton','cherryButton'])if(power[field]?.node)buttons.add(power[field].node);
+      if(/^Powerup_(?:Snow|Toss|Zap|Flame|Cherry)$/.test(n.name??''))buttons.add(n);
+      if(n.name==='PowerupFingers')containers.push(n);
+      for(const child of n.children??[])visit(child);
+    };
+    visit(scene);
+    const visible=[...(buttons.size?buttons:containers)].filter(n=>n.activeInHierarchy!==false).map(n=>{
+      const r=box(n,cc);if(!r)return null;
+      if(!introButtonScales.has(n))introButtonScales.set(n,{...n.scale});
+      const original=introButtonScales.get(n),height=number(transform(n,cc)?.height)*positive(original.y)*scale(n.parent).y;
+      const ay=number(transform(n,cc)?.anchorPoint?.y,.5);
+      return {...r,bottom:point(n).y-height*ay,top:point(n).y+height*(1-ay)};
+    }).filter(r=>r&&(!screen||r.top>screen.bottom+Math.min(20,r.height*.4)&&r.bottom<screen.bottom+screen.height*.25));
+    desired.position={...state.position};
+    if(!visible.length)return;
+    const outline=label.enableOutline?number(state.original.outlineWidth,2):0;
+    const shadow=label.enableShadow?Math.max(0,-number(label.shadowOffset?.y))+number(label.shadowBlur):0;
+    const bottomOffset=(inkOffsets(label,desired).bottom-outline-shadow)*ns.y;
+    const y=Math.max(...visible.map(r=>r.top))+12-bottomOffset;
+    desired.position.y=(y-point(node.parent).y)/ps.y;
+  }
+  function restoreObjectiveIcon(node,saved) {
+    if(node.isValid===false)return;
+    node.setPosition?.(saved.position);
+    if(saved.widget?.isValid!==false&&saved.widget)saved.widget.enabled=saved.widgetEnabled;
+  }
+  function prepareObjectiveIcons(plans) {
+    const present=new Set();
+    for(const [label,,desired]of plans)if(desired.bounds.role==='objective-prose'&&label.node.activeInHierarchy!==false) {
+      for(const icon of label.node.parent?.children??[])if(icon!==label.node&&icon.activeInHierarchy!==false&&component(icon,cc,'Sprite')&&!component(icon,cc,'Label')) {
+        present.add(icon);
+        if(!objectiveIcons.has(icon)){
+          const widget=component(icon,cc,'Widget');
+          // setTips clones its first row, including a Widget disabled by this controller.
+          const template=widget?.enabled===false&&FONT_OPTIONS.some(option=>option.family===label.fontFamily)?[...objectiveIcons.entries()].find(([other,saved])=>other.name===icon.name&&other.parent?.parent===icon.parent?.parent&&saved.widgetEnabled===true):null;
+          objectiveIcons.set(icon,{position:(template?.[1].position??icon.position).clone(),widget,widgetEnabled:template?.[1].widgetEnabled??widget?.enabled});
+        }
+        const saved=objectiveIcons.get(icon);if(saved.widget)saved.widget.enabled=false;
+      }
+    }
+    for(const [node,saved]of objectiveIcons)if(!present.has(node)){restoreObjectiveIcon(node,saved);objectiveIcons.delete(node);}
+  }
+  function alignObjectiveIcons(plans) {
+    for(const [label,,desired]of plans)if(desired.bounds.role==='objective-prose'&&label.node.activeInHierarchy!==false) {
+      const y=point(label.node).y+inkOffsets(label,desired).firstCenter*scale(label.node).y;
+      for(const icon of label.node.parent?.children??[])if(objectiveIcons.has(icon)){
+        const ui=transform(icon,cc),centerOffset=number(ui?.height)*( .5-number(ui?.anchorPoint?.y,.5))*scale(icon).y;
+        icon.setWorldPosition?.(point(icon).x,y-centerOffset,number(icon.worldPosition?.z));
+      }
+    }
+  }
   function fitBlock(label,state,{width,height,base=baseSize(label,state),style=styleFor(label,state),role=roleFor(label),source=state.source.trim(),maxLines=2,forceWrap=false,grow=false,preserveLines=false}) {
     const outline=label.enableOutline ? Math.min(number(state.original.outlineWidth,2), role === "warning" ? 3 : Infinity) : 0;
     const usable=Math.max(1,width-outline*2-10), space=Math.max(1,height-outline*2-8);
@@ -1923,13 +2254,6 @@ export function createController(cc, resources, log = {}) {
     }
     if(role === "intro") {
       const b=budget(label,state,labels),fit=fitBlock(label,state,{width:b.width,height:Math.max(100,state.own.height),role,maxLines:2});
-      const screen=screenBox(node),ns=scale(node),ps=scale(node.parent),icons=[];
-      const nativePowerClass=cc.js?.getClassByName?.('PowerupFingers');
-      const visit=n=>{const power=nativePowerClass?n.getComponent?.(nativePowerClass):null;if(power&&n.activeInHierarchy!==false)for(const field of ['fireButton','snowButton','tossButton','zapButton','cherryButton']){const button=power[field]?.node;if(button?.activeInHierarchy!==false){const r=button&&box(button,cc);if(r)icons.push(r);}}if(n.activeInHierarchy!==false&&/^(?:PowerupFingers|Powerup_(?:Snow|Toss|Zap|Flame|Cherry)|PlantFoodCount)$/.test(n.name??"")){const r=box(n,cc);if(r)icons.push(r);}for(const child of n.children??[])visit(child);};
-      let top=node;while(top.parent)top=top.parent;visit(top);
-      const currentBottom=point(node.parent).y+state.position.y*ps.y-fit.geometry.height*ns.y*number(transform(node,cc)?.anchorPoint?.y,.5);
-      const bottom=Math.max(currentBottom,...icons.filter(r=>!screen||r.bottom<screen.bottom+screen.height*.25).map(r=>r.top+12));
-      if(bottom>currentBottom)fit.position={...state.position,y:state.position.y+(bottom-currentBottom)/ps.y};
       return fit;
     }
     if(role === "lose-tip") return fitBlock(label,state,{width:state.own.width,height:state.own.height,style:styleFor(label,state),role,maxLines:2});
@@ -2107,6 +2431,8 @@ export function createController(cc, resources, log = {}) {
         if(desired.bounds.role==='loading-tip')state.tipTarget.node.setPosition(0,desired.geometry.height/2,0);
       }
       const changedLabels = [];
+      for(const [label,state,desired]of plans)if(desired.bounds.role==='intro')placeIntro(label,state,desired,scene);
+      prepareObjectiveIcons(plans);
       for (const [sourceLabel, state, desired] of plans) {
         const label=state.tipTarget??sourceLabel;
 
@@ -2143,6 +2469,7 @@ export function createController(cc, resources, log = {}) {
       for(const [label,,desired]of plans)if(desired.bounds.role==='objective-prose')for(let n=label.node.parent;n&&!/^(LevelObjectiveScreen|PauseScreen)$/.test(n.name);n=n.parent){const layout=component(n,cc,'Layout');if(layout?.enabled)objectiveLayouts.add(layout);}
       const depth=n=>{let d=0;for(;n;n=n.parent)d++;return d;};
       for(const layout of [...objectiveLayouts].sort((a,b)=>depth(b.node)-depth(a.node)))layout.updateLayout?.(true);
+      alignObjectiveIcons(plans);
       for(const [label,state,desired] of plans) if(roleFor(label) === "game-tip") layoutTip(label,state,desired,scene);
       for(const [label,state,desired] of plans)if(['game-tip','loading-tip'].includes(desired.bounds.role))rasterTip(label,state,desired);
       const ownControls = new Set(changedLabels.map(label => states.get(label)?.applied?.bounds.control).filter(control => control?.horizontal));
@@ -2165,6 +2492,8 @@ export function createController(cc, resources, log = {}) {
       for (const [owner, state] of richStates) restoreRich(owner,state);
       richStates.clear();
       states.clear();
+      for(const [node,saved]of objectiveIcons)restoreObjectiveIcon(node,saved);
+      objectiveIcons.clear();
       reflowAlmanac([]);
       releaseControls(null);
       for(const saved of timerNodes.values())restoreTimerNode(saved);
@@ -2316,6 +2645,9 @@ export function createLanguageController(cc, classes, log = {}) {
 let session = null;
 export default {
   startup(ctx) {
+    const journal = createSessionLog(ctx);
+    journal.start();
+    ctx.runtime.onDispose?.(() => journal.dispose(), "gardendless-session-log");
     const cc = ctx.engine.getCc();
     const event = cc?.Director?.EVENT_BEFORE_DRAW ?? "director_before_draw";
     if (!cc?.director?.on || !cc?.director?.getScene) throw new Error("Исправление шрифта: недоступен Cocos director");
@@ -2330,7 +2662,7 @@ export default {
       return nativeEngine?.getModuleExport?.(id, name) ?? globalThis.System?.get?.(id)?.[name] ?? null;
     };
     const language = createLanguageController(cc, { MultiLanguage: classByName("MultiLanguage"), LanguageEnum: exportByName("MultiLanguage", "LanguageEnum"), Setting: exportByName("SettingWindow", "Setting"), KeyListener: classByName("KeyListener") }, ctx.log);
-    const resolveNative=()=>({SettingWindow:classByName("SettingWindow"),Players:nativeEngine?.getAllPlayerProperties?.()??exportByName("PlayerProperties","AllPlayerProperties"),profileKey:exportByName("PlayerProperties","UserDataDocument"),PowerupFingers:exportByName("PowerupFingers","PowerupFingers")??classByName("PowerupFingers"),PlantFoodCount:classByName("PlantFoodCount"),SunCount:classByName("SunCount"),LevelPlay:exportByName("levelController","LevelPlay"),CoinCount:classByName("CoinCount"),CoinCollecterInGame:classByName("CoinCollecterInGame"),sounds:exportByName("SoundRescourses","sounds"),Zen:classByName("zenGardenScene"),Commodity:classByName("StoreCommodity"),LnC:exportByName("LnC","LnC")??classByName("LnC"),UIInGame:exportByName("UI","UIInGame"),ShovelUIController:classByName("ShovelUIController")});
+    const resolveNative=()=>({SettingWindow:classByName("SettingWindow"),Players:nativeEngine?.getAllPlayerProperties?.()??exportByName("PlayerProperties","AllPlayerProperties"),profileKey:exportByName("PlayerProperties","UserDataDocument"),PowerupFingers:exportByName("PowerupFingers","PowerupFingers")??classByName("PowerupFingers"),PlantFoodCount:classByName("PlantFoodCount"),SunCount:classByName("SunCount"),LevelPlay:exportByName("levelController","LevelPlay"),CoinCount:classByName("CoinCount"),CoinCollecterInGame:classByName("CoinCollecterInGame"),sounds:exportByName("SoundRescourses","sounds"),Zen:classByName("zenGardenScene"),Commodity:classByName("StoreCommodity"),CostumeSeller:classByName("StoreCostumeSeller"),LnC:exportByName("LnC","LnC")??classByName("LnC"),UIInGame:exportByName("UI","UIInGame"),ShovelUIController:classByName("ShovelUIController")});
     const native={...resolveNative(),resolve:()=>({...resolveNative(),Plant:classByName("Plant"),ImitaterPlant:classByName("ImitaterPlant"),MultiLanguage:classByName("MultiLanguage"),LanguageEnum:exportByName("MultiLanguage","LanguageEnum")})};
     const paid=createPaidController(cc,native,readPowerPreferences(),ctx.log),ui=createUiController(cc,native,ctx.log);
     native.getGamingSpeed=()=>exportByName("UI","gamingSpeed");
@@ -2381,12 +2713,12 @@ export default {
             try { helper.scan(); }
             catch (error) {
 
-              if (!reported.has(name)) { reported.add(name); ctx.log.warn(`Исправление ${name}: ${String(error?.message ?? error)}`); }
+              if (!reported.has(name)) { reported.add(name); ctx.log.warn(`Исправление ${name}: ${String(error?.stack ?? error)}`); }
             }
           }
         };
         cc.director.on(event, listener);
-        session = { controller, resources, cleanup, language, paid, ui, planning, speed, speedView, settingsView, preview, autoCollect, bindEngine: engine => { nativeEngine = engine; } };
+        session = { controller, resources, cleanup, language, paid, ui, planning, speed, speedView, settingsView, preview, autoCollect, journal, bindEngine: engine => { nativeEngine = engine; } };
         ctx.log.info(`Русский шрифт ${VERSION}: пять исходных шрифтов; размер ${resources.percent}%; исправление до отрисовки кадра.`);
       },
       dispose: cleanup
@@ -2437,6 +2769,11 @@ export default {
         {type:"toggle",key:"planning-boost-fix",label:"Убирать копии от начального буста до старта раунда",description:"Во время подготовки буст из сада или за алмазы расходуется по игровой логике, но не создаёт копии. После запуска раунда копии и удобрение листиком действуют как обычно.",getValue:()=>current.planning.enabled,setValue:v=>current.planning.setEnabled(v)},
         {type:"toggle",key:"custom-game-speed",label:"Изменить стандартный множитель ускорения",description:"Заменяет ускорение штатной кнопки выбранным множителем. Пока ускорение выключено, скорость остаётся обычной.",getValue:()=>current.speed.enabled,setValue:v=>current.speed.setEnabled(v)},
         {type:"number",key:"game-speed-multiplier",label:"Множитель ускорения, ×",description:"От 1× до 10× с шагом 0.1. Можно вводить точку или запятую и подтверждать Enter. При включённом ускорении новое значение применяется сразу, при обычной скорости — после нажатия кнопки ускорения. Пауза и автоматическое отключение сохраняются.",visible:()=>current.speed.enabled,min:1,max:10,step:0.1,getValue:()=>current.speed.multiplier,setValue:v=>current.speed.setMultiplier(v)}
+      ]},{title:"Журнал и диагностика",items:[
+        {type:"action",key:"save-session-log",label:"Сохранить копию журнала TXT",description:"Сообщения игры, GP Next и ошибки автоматически дописываются в gp-next/logs/Gardendless-debug.txt. Копию можно отправить для поиска багов.",onClick:async()=>{
+          try {await current.journal.download();ctx.ui.toast("Копия журнала сохранена.", "success");}
+          catch (error) {ctx.log.error(`Не удалось сохранить копию журнала: ${String(error?.stack ?? error)}`);ctx.ui.toast("Не удалось сохранить копию. Журнал находится в папке gp-next/logs рядом с данными GP Next.", "error");}
+        }}
       ]}]
     }));
     current.preview.start();current.speedView.start();

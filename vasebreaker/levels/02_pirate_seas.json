@@ -1,0 +1,295 @@
+{
+  "#comment": "Glass Garden Vasebreaker 02 - Pirate Seas",
+  "Information": {
+    "uuid": "d8e10ea1-752c-5344-9db2-517503b67fc7",
+    "name": {
+      "ru": "Вазобой 2: Пираты",
+      "en": "Vasebreaker 2: Pirate Seas"
+    },
+    "Author": "Glass Garden / Осколки сада",
+    "Introduction": {
+      "ru": "Разбейте все вазы. Победите всех зомби.",
+      "en": "Break all the vases. Defeat all the zombies."
+    },
+    "GameVersion": "0.15.0",
+    "Version": "1.1",
+    "CreatedAt": "2026-10-11",
+    "UpdatedAt": "2026-10-12",
+    "Difficulty": "Hard",
+    "Category": "Vasebreaker",
+    "RequiredLocalMod": "local.gardendless.vase-chaos-rules",
+    "RequiredLocalModVersion": ">=1.2.0"
+  },
+  "objects": [
+    {
+      "objclass": "LevelDefinition",
+      "objdata": {
+        "Name": "Вазобой 2: Пираты",
+        "Description": "Разбейте все вазы. Победите всех зомби.",
+        "LevelNumber": 2,
+        "StageModule": "RTID(PirateStage@LevelModules)",
+        "Loot": "RTID(DefaultLoot@LevelModules)",
+        "Modules": [
+          "RTID(VaseChaos02Intro@CurrentLevel)",
+          "RTID(ZombiesDeadWinCon@LevelModules)",
+          "RTID(DefaultZombieWinCondition@LevelModules)",
+          "RTID(VaseChaos02Bank@CurrentLevel)",
+          "RTID(VaseChaos02NoWaves@CurrentLevel)",
+          "RTID(VaseChaos02Goals@CurrentLevel)",
+          "RTID(VaseChaos02Vases@CurrentLevel)"
+        ],
+        "IsVasebreaker": true,
+        "StartingSun": 0,
+        "MusicType": "MiniGame_B",
+        "ForceToWorldMap": false,
+        "RepeatPlayForceToWorldMap": false,
+        "VaseChaosRules": {
+          "Ruleset": "glass-garden-chaos-1",
+          "SunVasesMin": 2,
+          "SunVasesMax": 3,
+          "ExtraZombie": "pirate",
+          "VasePlantPool": [
+            "threepeater",
+            "bloomerang",
+            "bonkchoy",
+            "cabbagepult",
+            "repeater",
+            "wallnut",
+            "iceburg",
+            "spikeweed",
+            "potatomine",
+            "splitpea",
+            "torchwood",
+            "starfruit",
+            "peapod",
+            "snowpea",
+            "cactus",
+            "primalpeashooter",
+            "tallnut",
+            "chardguard",
+            "kernelpult",
+            "laser_bean",
+            "lightningreed",
+            "redstinger",
+            "citron",
+            "electricpeashooter",
+            "snappea",
+            "coconutcannon",
+            "sapfling",
+            "peanut",
+            "endurian",
+            "fumeshroom",
+            "scaredyshroom",
+            "magnetshroom",
+            "hypnoshroom",
+            "sporeshroom",
+            "gloomshroom",
+            "pumpkin",
+            "garlic",
+            "puffshroom",
+            "poisonpeashooter",
+            "shadowshroom",
+            "chomper",
+            "firepeashooter",
+            "pepperpult",
+            "coldsnapdragon",
+            "akee",
+            "snapdragon",
+            "primalwallnut",
+            "spikerock",
+            "hurrikale",
+            "banana",
+            "guacodile",
+            "stunion",
+            "primalpotatomine",
+            "phatbeet",
+            "bowlingbulb",
+            "celerystalker",
+            "wasabiwhip",
+            "homingthistle",
+            "mirrornut",
+            "dandelion",
+            "applemortar",
+            "loquat",
+            "wintermelon",
+            "grapeshot",
+            "dusklobber",
+            "explodeonut",
+            "plantern"
+          ],
+          "VaseZombiePool": [
+            "pirate",
+            "pirate_armor1",
+            "pirate_armor2",
+            "swashbuckler",
+            "pirate_barrel",
+            "cannon",
+            "pirate_captain",
+            "pirate_imp"
+          ],
+          "AutoOpenFirst": 10,
+          "AutoOpenEvery": 10
+        }
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos02Intro"
+      ],
+      "objclass": "LevelIntroProperties",
+      "objdata": {
+        "PanStartOffset": 0,
+        "PanStreetOffset": 0,
+        "PanEndOffset": 0,
+        "PanRightDuration": 0,
+        "PanLeftDuration": 0,
+        "PanMoveRightTime": 0,
+        "PanMoveLeftTime": 0,
+        "AdditionalStartingSun": 0,
+        "SkipShowingStreet": true,
+        "ZombiePreviewOff": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos02Bank"
+      ],
+      "objclass": "SeedBankProperties",
+      "objdata": {
+        "SelectionMethod": "preset",
+        "PresetPlantList": [
+          {
+            "PlantType": "jalapeno",
+            "Level": -1,
+            "ForceBoosted": false
+          },
+          {
+            "PlantType": "squash",
+            "Level": -1,
+            "ForceBoosted": false
+          }
+        ],
+        "SuppressObjectiveTip": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos02NoWaves"
+      ],
+      "objclass": "WaveManagerProperties",
+      "objdata": {
+        "WaveCount": 0,
+        "FlagWaveInterval": 1,
+        "SuppressFlagZombie": true,
+        "Waves": []
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos02Goals"
+      ],
+      "objclass": "StarChallengeBeatTheLevelProps",
+      "objdata": {
+        "Descriptions": [
+          "Разбейте все вазы.",
+          "Победите всех зомби.",
+          "Через 10 секунд бездействия случайная ваза разобьётся."
+        ]
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos02Vases"
+      ],
+      "objclass": "VaseBreakerPresetProperties",
+      "objdata": {
+        "MinColumnIndex": 3,
+        "MaxColumnIndex": 8,
+        "NumColoredPlantVases": 3,
+        "NumColoredZombieVases": 0,
+        "ZombieVasesZombieType": "pirate_gargantuar",
+        "SunVasesSunValue": 75,
+        "PlantfoodVasesPlantfoodCount": 1,
+        "Vases": [
+          {
+            "PlantTypeName": "splitpea",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "starfruit",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "peapod",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "snowpea",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "cactus",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "primalpeashooter",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "tallnut",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "chardguard",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "kernelpult",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "potatomine",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "pirate",
+            "Count": 4
+          },
+          {
+            "ZombieTypeName": "pirate_armor1",
+            "Count": 4
+          },
+          {
+            "ZombieTypeName": "pirate_armor2",
+            "Count": 3
+          },
+          {
+            "ZombieTypeName": "swashbuckler",
+            "Count": 2
+          },
+          {
+            "ZombieTypeName": "pirate_barrel",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "cannon",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "pirate_captain",
+            "Count": 1
+          },
+          {
+            "CollectableTypeName": "sun",
+            "Count": 3
+          },
+          {
+            "CollectableTypeName": "plantfood",
+            "Count": 1
+          }
+        ]
+      }
+    }
+  ],
+  "version": 1
+}

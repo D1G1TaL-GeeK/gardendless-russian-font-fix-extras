@@ -1,0 +1,423 @@
+{
+  "#comment": "Glass Garden Vasebreaker Endless 12 - Kung Fu World",
+  "Information": {
+    "uuid": "4b76bcb8-5ca1-597c-9617-e9676a187bb3",
+    "name": {
+      "ru": "Вазобой ∞ 12: Кунг-фу",
+      "en": "Vasebreaker ∞ 12: Kung Fu World"
+    },
+    "Author": "Glass Garden / Осколки сада",
+    "Introduction": {
+      "ru": "Разбейте все вазы. Победите всех зомби.",
+      "en": "Break all the vases. Defeat all the zombies."
+    },
+    "GameVersion": "0.15.0",
+    "Version": "1.1",
+    "CreatedAt": "2026-10-11",
+    "UpdatedAt": "2026-10-12",
+    "Difficulty": "Hard Endless",
+    "Category": "Vasebreaker",
+    "RequiredLocalMod": "local.gardendless.vase-chaos-rules",
+    "RequiredLocalModVersion": ">=1.2.0"
+  },
+  "objects": [
+    {
+      "objclass": "LevelDefinition",
+      "objdata": {
+        "Name": "Вазобой ∞ 12: Кунг-фу",
+        "Description": "Разбейте все вазы. Побеждайте зомби.",
+        "LevelNumber": 24,
+        "StageModule": "RTID(KongfuStage@LevelModules)",
+        "Loot": "RTID(DefaultLoot@LevelModules)",
+        "Modules": [
+          "RTID(VaseChaos12Intro@CurrentLevel)",
+          "RTID(ZombiesDeadWinCon@LevelModules)",
+          "RTID(DefaultZombieWinCondition@LevelModules)",
+          "RTID(VaseChaos12Bank@CurrentLevel)",
+          "RTID(VaseChaos12NoWaves@CurrentLevel)",
+          "RTID(VaseChaos12Goals@CurrentLevel)",
+          "RTID(VaseChaos12Vases@CurrentLevel)"
+        ],
+        "IsVasebreaker": true,
+        "StartingSun": 0,
+        "MusicType": "MiniGame_B",
+        "ForceToWorldMap": false,
+        "RepeatPlayForceToWorldMap": false,
+        "VaseChaosRules": {
+          "Ruleset": "glass-garden-chaos-1",
+          "SunVasesMin": 3,
+          "SunVasesMax": 4,
+          "ExtraZombie": "kongfu",
+          "AutoOpenFirst": 10,
+          "AutoOpenEvery": 10,
+          "AutoOpenCount": 1,
+          "Endless": true,
+          "EndlessPlantPool": [
+            "threepeater",
+            "bloomerang",
+            "bonkchoy",
+            "cabbagepult",
+            "repeater",
+            "wallnut",
+            "iceburg",
+            "spikeweed",
+            "potatomine",
+            "splitpea",
+            "torchwood",
+            "starfruit",
+            "peapod",
+            "snowpea",
+            "cactus",
+            "primalpeashooter",
+            "tallnut",
+            "chardguard",
+            "kernelpult",
+            "laser_bean",
+            "lightningreed",
+            "redstinger",
+            "citron",
+            "electricpeashooter",
+            "snappea",
+            "coconutcannon",
+            "sapfling",
+            "peanut",
+            "endurian",
+            "fumeshroom",
+            "scaredyshroom",
+            "magnetshroom",
+            "hypnoshroom",
+            "sporeshroom",
+            "gloomshroom",
+            "pumpkin",
+            "garlic",
+            "puffshroom",
+            "poisonpeashooter",
+            "shadowshroom",
+            "chomper",
+            "firepeashooter",
+            "pepperpult",
+            "coldsnapdragon",
+            "akee",
+            "snapdragon",
+            "primalwallnut",
+            "spikerock",
+            "hurrikale",
+            "banana",
+            "guacodile",
+            "stunion",
+            "primalpotatomine",
+            "phatbeet",
+            "bowlingbulb",
+            "celerystalker",
+            "wasabiwhip",
+            "homingthistle",
+            "mirrornut",
+            "dandelion",
+            "applemortar",
+            "loquat",
+            "wintermelon",
+            "grapeshot",
+            "dusklobber",
+            "explodeonut",
+            "plantern"
+          ],
+          "VasePlantPool": [
+            "threepeater",
+            "bloomerang",
+            "bonkchoy",
+            "cabbagepult",
+            "repeater",
+            "wallnut",
+            "iceburg",
+            "spikeweed",
+            "potatomine",
+            "splitpea",
+            "torchwood",
+            "starfruit",
+            "peapod",
+            "snowpea",
+            "cactus",
+            "primalpeashooter",
+            "tallnut",
+            "chardguard",
+            "kernelpult",
+            "laser_bean",
+            "lightningreed",
+            "redstinger",
+            "citron",
+            "electricpeashooter",
+            "snappea",
+            "coconutcannon",
+            "sapfling",
+            "peanut",
+            "endurian",
+            "fumeshroom",
+            "scaredyshroom",
+            "magnetshroom",
+            "hypnoshroom",
+            "sporeshroom",
+            "gloomshroom",
+            "pumpkin",
+            "garlic",
+            "puffshroom",
+            "poisonpeashooter",
+            "shadowshroom",
+            "chomper",
+            "firepeashooter",
+            "pepperpult",
+            "coldsnapdragon",
+            "akee",
+            "snapdragon",
+            "primalwallnut",
+            "spikerock",
+            "hurrikale",
+            "banana",
+            "guacodile",
+            "stunion",
+            "primalpotatomine",
+            "phatbeet",
+            "bowlingbulb",
+            "celerystalker",
+            "wasabiwhip",
+            "homingthistle",
+            "mirrornut",
+            "dandelion",
+            "applemortar",
+            "loquat",
+            "wintermelon",
+            "grapeshot",
+            "dusklobber",
+            "explodeonut",
+            "plantern"
+          ],
+          "VaseZombiePool": [
+            "kongfu",
+            "kongfu_armor1",
+            "kongfu_armor2",
+            "kongfu_armor3",
+            "kongfu_hammer",
+            "kongfu_torch",
+            "kongfu_gong",
+            "kongfu_bomb",
+            "kongfu_drink",
+            "kongfu_chi"
+          ],
+          "EndlessVasePreset": {
+            "MinColumnIndex": 2,
+            "MaxColumnIndex": 8,
+            "NumColoredPlantVases": 3,
+            "NumColoredZombieVases": 0,
+            "ZombieVasesZombieType": "kongfu_bronze_strong",
+            "SunVasesSunValue": 75,
+            "PlantfoodVasesPlantfoodCount": 1,
+            "Vases": [
+              {
+                "PlantTypeName": "wasabiwhip",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "poisonpeashooter",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "homingthistle",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "mirrornut",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "spikeweed",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "pumpkin",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "bloomerang",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "citron",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "dandelion",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "applemortar",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "loquat",
+                "Count": 1
+              },
+              {
+                "ZombieTypeName": "kongfu",
+                "Count": 4
+              },
+              {
+                "ZombieTypeName": "kongfu_armor1",
+                "Count": 6
+              },
+              {
+                "ZombieTypeName": "kongfu_armor2",
+                "Count": 3
+              },
+              {
+                "ZombieTypeName": "kongfu_hammer",
+                "Count": 2
+              },
+              {
+                "ZombieTypeName": "kongfu_torch",
+                "Count": 2
+              },
+              {
+                "ZombieTypeName": "kongfu_bomb",
+                "Count": 1
+              },
+              {
+                "ZombieTypeName": "monk",
+                "Count": 1
+              },
+              {
+                "CollectableTypeName": "sun",
+                "Count": 4
+              },
+              {
+                "CollectableTypeName": "plantfood",
+                "Count": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos12Intro"
+      ],
+      "objclass": "LevelIntroProperties",
+      "objdata": {
+        "PanStartOffset": 0,
+        "PanStreetOffset": 0,
+        "PanEndOffset": 0,
+        "PanRightDuration": 0,
+        "PanLeftDuration": 0,
+        "PanMoveRightTime": 0,
+        "PanMoveLeftTime": 0,
+        "AdditionalStartingSun": 0,
+        "SkipShowingStreet": true,
+        "ZombiePreviewOff": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos12Bank"
+      ],
+      "objclass": "SeedBankProperties",
+      "objdata": {
+        "SelectionMethod": "preset",
+        "PresetPlantList": [
+          {
+            "PlantType": "jalapeno",
+            "Level": -1,
+            "ForceBoosted": false
+          },
+          {
+            "PlantType": "squash",
+            "Level": -1,
+            "ForceBoosted": false
+          }
+        ],
+        "SuppressObjectiveTip": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos12NoWaves"
+      ],
+      "objclass": "WaveManagerProperties",
+      "objdata": {
+        "WaveCount": 0,
+        "FlagWaveInterval": 1,
+        "SuppressFlagZombie": true,
+        "Waves": []
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos12Goals"
+      ],
+      "objclass": "StarChallengeBeatTheLevelProps",
+      "objdata": {
+        "Descriptions": [
+          "Пройдите как можно больше раундов.",
+          "Разбейте все вазы и победите зомби.",
+          "Через 10 секунд бездействия случайная ваза разобьётся."
+        ]
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos12Vases"
+      ],
+      "objclass": "VaseBreakerPresetProperties",
+      "objdata": {
+        "MinColumnIndex": 7,
+        "MaxColumnIndex": 8,
+        "NumColoredPlantVases": 1,
+        "NumColoredZombieVases": 0,
+        "ZombieVasesZombieType": "kongfu_bronze_strong",
+        "SunVasesSunValue": 75,
+        "PlantfoodVasesPlantfoodCount": 1,
+        "Vases": [
+          {
+            "PlantTypeName": "wasabiwhip",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "poisonpeashooter",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "homingthistle",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "mirrornut",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "spikeweed",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "pumpkin",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "kongfu_bomb",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "monk",
+            "Count": 1
+          },
+          {
+            "CollectableTypeName": "sun",
+            "Count": 1
+          },
+          {
+            "CollectableTypeName": "plantfood",
+            "Count": 1
+          }
+        ]
+      }
+    }
+  ],
+  "version": 1
+}

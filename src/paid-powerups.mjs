@@ -15,6 +15,8 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
   const locked=()=>preferences.mode!=="native";
   const level=()=>LevelPlay?.component;
   const current=()=>Players?.currentPlayer;
+  const alive=value=>!!value&&value.isValid!==false&&value.node?.isValid!==false&&
+    (typeof cc.isValid!=="function"||(cc.isValid(value,true)&&(!value.node||cc.isValid(value.node,true))));
   const balance=()=>Number.isSafeInteger(current()?.coin)&&current().coin>=0?current().coin:0;
   const allowedPower=p=>!!level()&&!level().PowerUpsForceHide&&(!!level().PowerUpsForceShow||(!!level().showPowerUps&&current()?.features?.feature_powerup===true))&&p?.shown;
   const required=p=>p?.mode===1||!!level()?.PowerUpsForceShow&&(!!level()?.PowerUpsTip||current()?.features?.feature_powerup!==true);
@@ -27,9 +29,13 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     undo.push(()=>{if(obj[key]===replacement)obj[key]=original;});
   }
   function cancel(p=PowerupFingers?.component) {
-    if(!p)return;p.countDown=0;p.mousePushed=false;leases.delete(p);
-
-    try{Promise.resolve(p.tryChangingIndex?.(-1,null,true)).catch(e=>log.warn?.(String(e)));}catch(e){log.warn?.(String(e));}
+    if(!p)return;leases.delete(p);
+    // Cocos clears object fields on destruction while the static component
+    // reference may still point to the old instance during scene changes.
+    if(!alive(p))return;
+    p.countDown=0;p.mousePushed=false;
+    const report=error=>log.warn?.(`Сброс усиления (индекс ${p.index ?? "?"}): ${String(error?.stack??error)}`);
+    try{Promise.resolve(p.tryChangingIndex?.(-1,null,true)).catch(report);}catch(error){report(error);}
   }
   function syncCoin(value,animate=false) {
     const c=CoinCount?.component;
@@ -40,7 +46,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     const collector=CoinCollecterInGame?.component;
 
 
-    if(collector?.node&&collector.isValid!==false)collector.hidden=false;
+    if(collector?.node&&collector.isValid!==false&&collector.node.activeInHierarchy!==false)collector.hidden=false;
   }
   function rejected() {
     const now=globalThis.performance?.now?.()??Date.now();
@@ -88,6 +94,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
   }
   patch(SunCount?.prototype,"onAddDown",original=>function(...args){if(locked())return;return original.apply(this,args);});
   patch(PowerupFingers?.prototype,"powerUpStart",original=>function(...args) {
+    if(!alive(this))return;
     if(this.countDown>0||busy)return;
     if(locked()&&preferences.mode!=="coins"&&!required(this)){cancel(this);return;}
     if(preferences.mode!=="coins")return original.apply(this,args);
@@ -99,6 +106,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     return original.apply(this,args);
   });
   patch(PowerupFingers?.prototype,"tryChangingIndex",original=>function(index,...args) {
+    if(!alive(this))return Promise.resolve();
     if(index===-1&&this.countDown<=0)leases.delete(this);
     if(preferences.mode==="coins"&&index>=0&&index<=4){if(!allowedPower(this))return;if(!required(this)&&balance()<preferences.prices[INDEX[index]]){rejected();return;}}
     return original.call(this,index,...args);
@@ -120,6 +128,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     return original.call(this,event,...args);
   });
   patch(PowerupFingers?.prototype,"show",original=>function(...args) {
+    if(!alive(this))return;
     const l=level();
     if(preferences.mode!=="coins"||!l||l.PowerUpsForceHide||required(this))return original.apply(this,args);
     if(!l.showPowerUps||current()?.features?.feature_powerup!==true)return;
@@ -190,7 +199,13 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     const animate=value=>{s.tween?.stop?.();if(node.isValid===false)return;const target=new cc.Vec3(s.base.x*value,s.base.y*value,s.base.z);if(cc.tween)s.tween=cc.tween(node).to(.09,{scale:target},{easing:"quadOut"}).start();else node.setScale(target);};
     const bind=(event,fn)=>{if(!event)return;node.on(event,fn);s.handlers.push([event,fn]);};
     const events=cc.Node.EventType;
-    bind(events.MOUSE_ENTER,()=>{s.hover=true;if(enabled())animate(1.045);});
+    bind(events.MOUSE_ENTER,()=>{
+      s.hover=true;if(enabled())animate(1.045);
+      if(!disposed&&node.activeInHierarchy!==false&&preferences.mode==="coins"&&allowedPower(owner)&&!required(owner)&&owner.countDown<=0) {
+        // The native setter reveals coins and gems and restarts its own hide countdown.
+        try{revealWallet();}catch(error){log.warn?.(`Показ баланса: ${String(error?.message??error)}`);}
+      }
+    });
     bind(events.MOUSE_LEAVE,()=>{s.hover=false;animate(1);});
     bind(events.MOUSE_DOWN,event=>{if(event?.getButton?.()!==0)return;if(enabled())animate(.96);else if(preferences.mode==="coins"&&allowedPower(owner)&&owner.countDown<=0&&balance()<preferences.prices[key])rejected();});
     bind(events.MOUSE_UP,()=>animate(enabled()&&s.hover?1.045:1));
@@ -207,7 +222,7 @@ export function createPaidController(cc,native,preferences=readPowerPreferences(
     if(option){remember(option);option.active=locked()?false:nodes.get(option).active;if(!SettingWindow.allowCheat&&cc.Color)sw.allowCheatSprite.color=new cc.Color(255,0,0,255);}
     const sun=SunCount?.component?.addButton;if(sun){bindExistingCallback(SunCount.component,"onAddDown",sun);remember(sun);sun.active=locked()?false:nodes.get(sun).active;}
     const p=PowerupFingers?.component,food=PlantFoodCount?.component,paid=preferences.mode==="coins";
-    if(p&&p.isValid!==false){
+    if(alive(p)){
       if(locked()&&!paid&&!required(p))p.hide?.();
       if(paid&&!level()?.PowerUpsForceHide&&!required(p))p.show?.();
       if(paid&&required(p))for(const prop of ["fireButton","snowButton","tossButton","zapButton","cherryButton"]){const b=badges.get(p[prop]?.node);if(b)b.node.active=false;}

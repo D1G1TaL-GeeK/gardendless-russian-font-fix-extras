@@ -1,0 +1,417 @@
+{
+  "#comment": "Glass Garden Vasebreaker Endless 06 - Big Wave Beach",
+  "Information": {
+    "uuid": "47fe1a1c-8db7-5c26-b041-04b4b81f6635",
+    "name": {
+      "ru": "Вазобой ∞ 6: Пляж",
+      "en": "Vasebreaker ∞ 6: Big Wave Beach"
+    },
+    "Author": "Glass Garden / Осколки сада",
+    "Introduction": {
+      "ru": "Разбейте все вазы. Победите всех зомби.",
+      "en": "Break all the vases. Defeat all the zombies."
+    },
+    "GameVersion": "0.15.0",
+    "Version": "1.1",
+    "CreatedAt": "2026-10-11",
+    "UpdatedAt": "2026-10-12",
+    "Difficulty": "Hard Endless",
+    "Category": "Vasebreaker",
+    "RequiredLocalMod": "local.gardendless.vase-chaos-rules",
+    "RequiredLocalModVersion": ">=1.2.0"
+  },
+  "objects": [
+    {
+      "objclass": "LevelDefinition",
+      "objdata": {
+        "Name": "Вазобой ∞ 6: Пляж",
+        "Description": "Разбейте все вазы. Побеждайте зомби.",
+        "LevelNumber": 18,
+        "StageModule": "RTID(BeachStage@LevelModules)",
+        "Loot": "RTID(DefaultLoot@LevelModules)",
+        "Modules": [
+          "RTID(VaseChaos06Intro@CurrentLevel)",
+          "RTID(ZombiesDeadWinCon@LevelModules)",
+          "RTID(DefaultZombieWinCondition@LevelModules)",
+          "RTID(VaseChaos06Bank@CurrentLevel)",
+          "RTID(VaseChaos06NoWaves@CurrentLevel)",
+          "RTID(VaseChaos06Goals@CurrentLevel)",
+          "RTID(VaseChaos06Vases@CurrentLevel)"
+        ],
+        "IsVasebreaker": true,
+        "StartingSun": 0,
+        "MusicType": "MiniGame_B",
+        "ForceToWorldMap": false,
+        "RepeatPlayForceToWorldMap": false,
+        "VaseChaosRules": {
+          "Ruleset": "glass-garden-chaos-1",
+          "SunVasesMin": 2,
+          "SunVasesMax": 3,
+          "ExtraZombie": "beach",
+          "Endless": true,
+          "EndlessPlantPool": [
+            "threepeater",
+            "bloomerang",
+            "bonkchoy",
+            "cabbagepult",
+            "repeater",
+            "wallnut",
+            "iceburg",
+            "spikeweed",
+            "potatomine",
+            "splitpea",
+            "torchwood",
+            "starfruit",
+            "peapod",
+            "snowpea",
+            "cactus",
+            "primalpeashooter",
+            "tallnut",
+            "chardguard",
+            "kernelpult",
+            "laser_bean",
+            "lightningreed",
+            "redstinger",
+            "citron",
+            "electricpeashooter",
+            "snappea",
+            "coconutcannon",
+            "sapfling",
+            "peanut",
+            "endurian",
+            "fumeshroom",
+            "scaredyshroom",
+            "magnetshroom",
+            "hypnoshroom",
+            "sporeshroom",
+            "gloomshroom",
+            "pumpkin",
+            "garlic",
+            "puffshroom",
+            "poisonpeashooter",
+            "shadowshroom",
+            "chomper",
+            "firepeashooter",
+            "pepperpult",
+            "coldsnapdragon",
+            "akee",
+            "snapdragon",
+            "primalwallnut",
+            "spikerock",
+            "hurrikale",
+            "banana",
+            "guacodile",
+            "stunion",
+            "primalpotatomine",
+            "phatbeet",
+            "bowlingbulb",
+            "celerystalker",
+            "wasabiwhip",
+            "homingthistle",
+            "mirrornut",
+            "dandelion",
+            "applemortar",
+            "loquat",
+            "wintermelon",
+            "grapeshot",
+            "dusklobber",
+            "explodeonut",
+            "plantern"
+          ],
+          "VasePlantPool": [
+            "threepeater",
+            "bloomerang",
+            "bonkchoy",
+            "cabbagepult",
+            "repeater",
+            "wallnut",
+            "iceburg",
+            "spikeweed",
+            "potatomine",
+            "splitpea",
+            "torchwood",
+            "starfruit",
+            "peapod",
+            "snowpea",
+            "cactus",
+            "primalpeashooter",
+            "tallnut",
+            "chardguard",
+            "kernelpult",
+            "laser_bean",
+            "lightningreed",
+            "redstinger",
+            "citron",
+            "electricpeashooter",
+            "snappea",
+            "coconutcannon",
+            "sapfling",
+            "peanut",
+            "endurian",
+            "fumeshroom",
+            "scaredyshroom",
+            "magnetshroom",
+            "hypnoshroom",
+            "sporeshroom",
+            "gloomshroom",
+            "pumpkin",
+            "garlic",
+            "puffshroom",
+            "poisonpeashooter",
+            "shadowshroom",
+            "chomper",
+            "firepeashooter",
+            "pepperpult",
+            "coldsnapdragon",
+            "akee",
+            "snapdragon",
+            "primalwallnut",
+            "spikerock",
+            "hurrikale",
+            "banana",
+            "guacodile",
+            "stunion",
+            "primalpotatomine",
+            "phatbeet",
+            "bowlingbulb",
+            "celerystalker",
+            "wasabiwhip",
+            "homingthistle",
+            "mirrornut",
+            "dandelion",
+            "applemortar",
+            "loquat",
+            "wintermelon",
+            "grapeshot",
+            "dusklobber",
+            "explodeonut",
+            "plantern"
+          ],
+          "VaseZombiePool": [
+            "beach",
+            "beach_armor1",
+            "beach_armor2",
+            "beach_fem",
+            "beach_fem_armor1",
+            "beach_snorkel",
+            "beach_surfer",
+            "beach_octopus",
+            "beach_fisherman"
+          ],
+          "EndlessVasePreset": {
+            "MinColumnIndex": 2,
+            "MaxColumnIndex": 8,
+            "NumColoredPlantVases": 3,
+            "NumColoredZombieVases": 0,
+            "ZombieVasesZombieType": "beach_gargantuar",
+            "SunVasesSunValue": 75,
+            "PlantfoodVasesPlantfoodCount": 1,
+            "Vases": [
+              {
+                "PlantTypeName": "threepeater",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "bloomerang",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "bonkchoy",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "cabbagepult",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "repeater",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "wallnut",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "iceburg",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "spikeweed",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "potatomine",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "splitpea",
+                "Count": 1
+              },
+              {
+                "PlantTypeName": "torchwood",
+                "Count": 1
+              },
+              {
+                "ZombieTypeName": "beach",
+                "Count": 9
+              },
+              {
+                "ZombieTypeName": "beach_armor1",
+                "Count": 4
+              },
+              {
+                "ZombieTypeName": "beach_armor2",
+                "Count": 3
+              },
+              {
+                "ZombieTypeName": "beach_snorkel",
+                "Count": 2
+              },
+              {
+                "ZombieTypeName": "beach_surfer",
+                "Count": 1
+              },
+              {
+                "ZombieTypeName": "beach_octopus",
+                "Count": 1
+              },
+              {
+                "CollectableTypeName": "sun",
+                "Count": 3
+              },
+              {
+                "CollectableTypeName": "plantfood",
+                "Count": 1
+              }
+            ]
+          },
+          "AutoOpenFirst": 10,
+          "AutoOpenEvery": 10
+        }
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos06Intro"
+      ],
+      "objclass": "LevelIntroProperties",
+      "objdata": {
+        "PanStartOffset": 0,
+        "PanStreetOffset": 0,
+        "PanEndOffset": 0,
+        "PanRightDuration": 0,
+        "PanLeftDuration": 0,
+        "PanMoveRightTime": 0,
+        "PanMoveLeftTime": 0,
+        "AdditionalStartingSun": 0,
+        "SkipShowingStreet": true,
+        "ZombiePreviewOff": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos06Bank"
+      ],
+      "objclass": "SeedBankProperties",
+      "objdata": {
+        "SelectionMethod": "preset",
+        "PresetPlantList": [
+          {
+            "PlantType": "cherry_bomb",
+            "Level": -1,
+            "ForceBoosted": false
+          },
+          {
+            "PlantType": "wallnut",
+            "Level": -1,
+            "ForceBoosted": false
+          }
+        ],
+        "SuppressObjectiveTip": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos06NoWaves"
+      ],
+      "objclass": "WaveManagerProperties",
+      "objdata": {
+        "WaveCount": 0,
+        "FlagWaveInterval": 1,
+        "SuppressFlagZombie": true,
+        "Waves": []
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos06Goals"
+      ],
+      "objclass": "StarChallengeBeatTheLevelProps",
+      "objdata": {
+        "Descriptions": [
+          "Пройдите как можно больше раундов.",
+          "Разбейте все вазы и победите зомби.",
+          "Через 10 секунд бездействия случайная ваза разобьётся."
+        ]
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos06Vases"
+      ],
+      "objclass": "VaseBreakerPresetProperties",
+      "objdata": {
+        "MinColumnIndex": 7,
+        "MaxColumnIndex": 8,
+        "NumColoredPlantVases": 1,
+        "NumColoredZombieVases": 0,
+        "ZombieVasesZombieType": "beach_gargantuar",
+        "SunVasesSunValue": 75,
+        "PlantfoodVasesPlantfoodCount": 1,
+        "Vases": [
+          {
+            "PlantTypeName": "threepeater",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "bloomerang",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "bonkchoy",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "cabbagepult",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "repeater",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "wallnut",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "beach_surfer",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "beach_octopus",
+            "Count": 1
+          },
+          {
+            "CollectableTypeName": "sun",
+            "Count": 1
+          },
+          {
+            "CollectableTypeName": "plantfood",
+            "Count": 1
+          }
+        ]
+      }
+    }
+  ],
+  "version": 1
+}

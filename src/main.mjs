@@ -6,6 +6,7 @@ import {createSpeedController,createSpeedControlView} from "./game-speed.mjs";
 import {createSettingsControlView} from "./settings-view.mjs";
 import {createTipPartyController} from "./tip-party.mjs";
 import {createAutoCollectController} from "./auto-collect.mjs";
+import {createSessionLog} from "./session-log.mjs";
 import {FONT_SLOTS,readFontSlots,setFontSlot,resetFontSlots,fontSlotChoice,fontSlotFamily,originalFontSlot,fontOpticalFactor} from "./font-slots.mjs";
 import {authoredLines,balancedLines} from "./text-fit.mjs";
 const VERSION = "1.0.3";
@@ -119,7 +120,7 @@ function russianTime(text) {
 
 
 export function createController(cc, resources, log = {}) {
-  const states = new Map(), controls = new Map(), richStates = new Map(), almanacLayouts = new Map(), timerNodes = new Map(), tipNodes=new Map(), measure = measurer(resources);
+  const states = new Map(), controls = new Map(), richStates = new Map(), almanacLayouts = new Map(), timerNodes = new Map(), tipNodes=new Map(), tipArmatures=new WeakMap(), objectiveIcons=new Map(), introButtonScales=new WeakMap(), measure = measurer(resources);
   let disposed = false, warned = false, affected = 0;
   const ancestor = (node, pattern) => { for (let n=node;n;n=n.parent) if(pattern.test(n.name ?? "")) return n; return null; };
 
@@ -300,6 +301,43 @@ export function createController(cc, resources, log = {}) {
     const group=root.getChildByName?.('BGT'),pictures=(group?.children??[]).filter(n=>n.name!=='BG'&&n.active!==false);
     return {group,pictures,width:pictures.length?120:0,height:pictures.length?112:0};
   }
+  function tipPictureBounds(picture){
+    const inverse=new cc.Mat4();cc.Mat4.invert(inverse,picture.worldMatrix);
+    const points=[];
+    const addPoint=(node,x,y)=>{const p=new cc.Vec3(x,y,0);cc.Vec3.transformMat4(p,p,node.worldMatrix);cc.Vec3.transformMat4(p,p,inverse);points.push(p);};
+    const add=(node,left,bottom,right,top)=>{
+      for(const [x,y] of [[left,bottom],[left,top],[right,bottom],[right,top]])addPoint(node,x,y);
+    };
+    const visit=node=>{
+      if(node.active===false)return;
+      const display=cc.dragonBones?.ArmatureDisplay?node.getComponent?.(cc.dragonBones.ArmatureDisplay):null;
+      const armature=display?.armature?.(),slots=armature?.getSlots?.()??[],key=slots.filter(s=>/COS\d/.test(s.name??'')).map(s=>`${s.name}:${s.displayIndex}`).join('|'),bounds=armature?.armatureData?.aabb;
+      let cached=display&&tipArmatures.get(display);
+      if(display&&(!cached||cached.armature!==armature||cached.key!==key)){
+        const vertices=[];
+        const collect=(armature,parent=null)=>{for(const slot of armature?.getSlots?.()??[]){
+          if(slot._visible===false||slot.displayIndex<0||slot._color?.a===0||!slot._matrix)continue;
+          const matrix=parent?cc.Mat4.multiply(new cc.Mat4(),parent,slot._matrix):slot._matrix;
+          if(slot.childArmature)collect(slot.childArmature,matrix);
+          else for(let i=0;i<(slot._localVertices?.length??0);i+=4){const p=new cc.Vec3(slot._localVertices[i],slot._localVertices[i+1],0);cc.Vec3.transformMat4(p,p,matrix);vertices.push(p);}
+        }};
+        collect(armature);
+        // Cache a pose for each costume so idle animation does not move the whole notification.
+        cached={armature,key,vertices};if(vertices.length)tipArmatures.set(display,cached);
+      }
+      if(cached?.vertices.length)for(const p of cached.vertices)addPoint(node,p.x,p.y);
+      // Before the first rendered pose, use the authored rectangle (DragonBones Y points down).
+      else if(bounds?.width>0&&bounds?.height>0)add(node,bounds.x,-bounds.y-bounds.height,bounds.x+bounds.width,-bounds.y);
+      else if(component(node,cc,'Sprite')){
+        const ui=transform(node,cc);if(ui?.width>0&&ui?.height>0){const a=ui.anchorPoint;add(node,-ui.width*a.x,-ui.height*a.y,ui.width*(1-a.x),ui.height*(1-a.y));}
+      }
+      for(const child of node.children??[])visit(child);
+    };
+    visit(picture);
+    if(!points.length){const ui=transform(picture,cc),width=positive(ui?.width,100),height=positive(ui?.height,100);return{width,height,x:0,y:0};}
+    const left=Math.min(...points.map(p=>p.x)),right=Math.max(...points.map(p=>p.x)),bottom=Math.min(...points.map(p=>p.y)),top=Math.max(...points.map(p=>p.y));
+    return{width:right-left,height:top-bottom,x:(left+right)/2,y:(bottom+top)/2};
+  }
   function rememberTip(node){
     if(!tipNodes.has(node)){const ui=transform(node,cc),w=component(node,cc,'Widget'),l=component(node,cc,'Layout');tipNodes.set(node,{size:ui?[ui.width,ui.height]:null,p:{...node.position},s:node.scale.clone(),parent:node.parent,sibling:node.getSiblingIndex?.(),w,we:w?.enabled,l,le:l?.enabled});}
     const snap=tipNodes.get(node);if(snap.l)snap.l.enabled=false;if(snap.w)snap.w.enabled=false;return snap;
@@ -319,11 +357,17 @@ export function createController(cc, resources, log = {}) {
     transform(root,cc)?.setContentSize(width,height);target.setPosition(info.width/2,0,number(label.node.position.z));
     if(info.group){info.group.setPosition(0,0,number(info.group.position.z));transform(info.group,cc)?.setContentSize(width,height);}
     if(bg){transform(bg,cc)?.setContentSize(width,height);bg.setPosition(0,0,number(bg.position.z));}
-    for(const picture of info.pictures){const saved=rememberTip(picture),u=transform(picture,cc),factor=Math.min(1,100/(positive(u?.width,100)*positive(saved.s.x)),100/(positive(u?.height,100)*positive(saved.s.y)));picture.setScale(saved.s.x*factor,saved.s.y*factor,saved.s.z);picture.setPosition(-width/2+info.width/2+16,0,saved.p.z);}
+    for(const picture of info.pictures){const saved=rememberTip(picture),bounds=tipPictureBounds(picture),factor=Math.min(1,100/(positive(bounds.width,100)*positive(saved.s.x)),100/(positive(bounds.height,100)*positive(saved.s.y))),sx=saved.s.x*factor,sy=saved.s.y*factor;picture.setScale(sx,sy,saved.s.z);picture.setPosition(-width/2+info.width/2+16-bounds.x*sx,-bounds.y*sy,saved.p.z);}
     if(screen){
-      const nodes=[];const visit=n=>{nodes.push(n);for(const c of n.children??[])visit(c);};visit(scene);
-      const obstacles=nodes.filter(n=>n.activeInHierarchy!==false&&(n.name==='LODEntrance'||component(n,cc,'Button'))).map(n=>box(n,cc)).filter(b=>b&&b.width<screen.width*.4&&b.height<screen.height*.25);
-      const bottom=Math.max(screen.bottom+16,...obstacles.filter(b=>b.bottom<screen.bottom+screen.height*.35).map(b=>b.top+14));
+      const key=JSON.stringify([desired.string,width,height,screen.left,screen.right,screen.bottom,screen.top,rs.x,rs.y,root.parent?.uuid]);
+      if(state.tipPlacement?.key!==key){
+        const nodes=[],classes=['PlantCardDropped','dropping','Plant','Zombie','Vase'].map(name=>cc.js?.getClassByName?.(name)).filter(Boolean);
+        const visit=n=>{nodes.push(n);for(const c of n.children??[])visit(c);};visit(scene);
+        const floating=n=>{for(let p=n;p&&p!==scene;p=p.parent){if(/^(?:PlantCardDropped|DroppedCards|plantInHandLayer|cardsLayer)$/i.test(p.name??'')||classes.some(type=>p.getComponent?.(type)))return true;}return false;};
+        const obstacles=nodes.filter(n=>n.activeInHierarchy!==false&&!floating(n)&&(n.name==='LODEntrance'||component(n,cc,'Button'))).map(n=>box(n,cc)).filter(b=>b&&b.width<screen.width*.4&&b.height<screen.height*.25);
+        state.tipPlacement={key,bottom:Math.max(screen.bottom+16,...obstacles.filter(b=>b.bottom<screen.bottom+screen.height*.35).map(b=>b.top+14))};
+      }
+      const bottom=state.tipPlacement.bottom;
       const y=Math.min(screen.top-12-height*rs.y/2,bottom+height*rs.y/2);root.setWorldPosition((screen.left+screen.right)/2,y,root.worldPosition.z);
     }
   }
@@ -592,6 +636,72 @@ export function createController(cc, resources, log = {}) {
     try{inkCanvas??=globalThis.document?.createElement("canvas").getContext("2d");if(inkCanvas){inkCanvas.font=`${size}px "${fontFor(resources,style)}"`;return {ascent:Math.max(...lines.map(t=>inkCanvas.measureText(t).actualBoundingBoxAscent??size)),descent:Math.max(...lines.map(t=>inkCanvas.measureText(t).actualBoundingBoxDescent??size*.3))};}}catch(_){}
     return {ascent:size,descent:size*.35};
   }
+  function inkOffsets(label,desired) {
+    const {fontSize:size,lineHeight,lines,geometry,style}=desired;
+    const baselineRatio=number(cc.BASELINE_RATIO,.26),span=(lines.length-1)*lineHeight;
+    // Cocos TTF middle alignment positions the baseline using font size rather than glyph height.
+    const baseline=(geometry.height-span+size*(1-baselineRatio))/2;
+    const top=geometry.height*(1-number(transform(label.node,cc)?.anchorPoint?.y,.5));
+    const first=inkBounds([lines[0]],style,size),last=inkBounds([lines.at(-1)],style,size);
+    return {firstCenter:top-baseline+(first.ascent-first.descent)/2,bottom:top-baseline-span-last.descent};
+  }
+  function placeIntro(label,state,desired,scene) {
+    const node=label.node,screen=screenBox(node),ns=scale(node),ps=scale(node.parent),buttons=new Set(),containers=[];
+    const powerClass=cc.js?.getClassByName?.('PowerupFingers');
+    const visit=n=>{
+      if(n.activeInHierarchy===false)return;
+      const power=powerClass?n.getComponent?.(powerClass):null;
+      if(power)for(const field of ['fireButton','snowButton','tossButton','zapButton','cherryButton'])if(power[field]?.node)buttons.add(power[field].node);
+      if(/^Powerup_(?:Snow|Toss|Zap|Flame|Cherry)$/.test(n.name??''))buttons.add(n);
+      if(n.name==='PowerupFingers')containers.push(n);
+      for(const child of n.children??[])visit(child);
+    };
+    visit(scene);
+    const visible=[...(buttons.size?buttons:containers)].filter(n=>n.activeInHierarchy!==false).map(n=>{
+      const r=box(n,cc);if(!r)return null;
+      if(!introButtonScales.has(n))introButtonScales.set(n,{...n.scale});
+      const original=introButtonScales.get(n),height=number(transform(n,cc)?.height)*positive(original.y)*scale(n.parent).y;
+      const ay=number(transform(n,cc)?.anchorPoint?.y,.5);
+      return {...r,bottom:point(n).y-height*ay,top:point(n).y+height*(1-ay)};
+    }).filter(r=>r&&(!screen||r.top>screen.bottom+Math.min(20,r.height*.4)&&r.bottom<screen.bottom+screen.height*.25));
+    desired.position={...state.position};
+    if(!visible.length)return;
+    const outline=label.enableOutline?number(state.original.outlineWidth,2):0;
+    const shadow=label.enableShadow?Math.max(0,-number(label.shadowOffset?.y))+number(label.shadowBlur):0;
+    const bottomOffset=(inkOffsets(label,desired).bottom-outline-shadow)*ns.y;
+    const y=Math.max(...visible.map(r=>r.top))+12-bottomOffset;
+    desired.position.y=(y-point(node.parent).y)/ps.y;
+  }
+  function restoreObjectiveIcon(node,saved) {
+    if(node.isValid===false)return;
+    node.setPosition?.(saved.position);
+    if(saved.widget?.isValid!==false&&saved.widget)saved.widget.enabled=saved.widgetEnabled;
+  }
+  function prepareObjectiveIcons(plans) {
+    const present=new Set();
+    for(const [label,,desired]of plans)if(desired.bounds.role==='objective-prose'&&label.node.activeInHierarchy!==false) {
+      for(const icon of label.node.parent?.children??[])if(icon!==label.node&&icon.activeInHierarchy!==false&&component(icon,cc,'Sprite')&&!component(icon,cc,'Label')) {
+        present.add(icon);
+        if(!objectiveIcons.has(icon)){
+          const widget=component(icon,cc,'Widget');
+          // setTips clones its first row, including a Widget disabled by this controller.
+          const template=widget?.enabled===false&&FONT_OPTIONS.some(option=>option.family===label.fontFamily)?[...objectiveIcons.entries()].find(([other,saved])=>other.name===icon.name&&other.parent?.parent===icon.parent?.parent&&saved.widgetEnabled===true):null;
+          objectiveIcons.set(icon,{position:(template?.[1].position??icon.position).clone(),widget,widgetEnabled:template?.[1].widgetEnabled??widget?.enabled});
+        }
+        const saved=objectiveIcons.get(icon);if(saved.widget)saved.widget.enabled=false;
+      }
+    }
+    for(const [node,saved]of objectiveIcons)if(!present.has(node)){restoreObjectiveIcon(node,saved);objectiveIcons.delete(node);}
+  }
+  function alignObjectiveIcons(plans) {
+    for(const [label,,desired]of plans)if(desired.bounds.role==='objective-prose'&&label.node.activeInHierarchy!==false) {
+      const y=point(label.node).y+inkOffsets(label,desired).firstCenter*scale(label.node).y;
+      for(const icon of label.node.parent?.children??[])if(objectiveIcons.has(icon)){
+        const ui=transform(icon,cc),centerOffset=number(ui?.height)*( .5-number(ui?.anchorPoint?.y,.5))*scale(icon).y;
+        icon.setWorldPosition?.(point(icon).x,y-centerOffset,number(icon.worldPosition?.z));
+      }
+    }
+  }
   function fitBlock(label,state,{width,height,base=baseSize(label,state),style=styleFor(label,state),role=roleFor(label),source=state.source.trim(),maxLines=2,forceWrap=false,grow=false,preserveLines=false}) {
     const outline=label.enableOutline ? Math.min(number(state.original.outlineWidth,2), role === "warning" ? 3 : Infinity) : 0;
     const usable=Math.max(1,width-outline*2-10), space=Math.max(1,height-outline*2-8);
@@ -801,13 +911,6 @@ export function createController(cc, resources, log = {}) {
     }
     if(role === "intro") {
       const b=budget(label,state,labels),fit=fitBlock(label,state,{width:b.width,height:Math.max(100,state.own.height),role,maxLines:2});
-      const screen=screenBox(node),ns=scale(node),ps=scale(node.parent),icons=[];
-      const nativePowerClass=cc.js?.getClassByName?.('PowerupFingers');
-      const visit=n=>{const power=nativePowerClass?n.getComponent?.(nativePowerClass):null;if(power&&n.activeInHierarchy!==false)for(const field of ['fireButton','snowButton','tossButton','zapButton','cherryButton']){const button=power[field]?.node;if(button?.activeInHierarchy!==false){const r=button&&box(button,cc);if(r)icons.push(r);}}if(n.activeInHierarchy!==false&&/^(?:PowerupFingers|Powerup_(?:Snow|Toss|Zap|Flame|Cherry)|PlantFoodCount)$/.test(n.name??"")){const r=box(n,cc);if(r)icons.push(r);}for(const child of n.children??[])visit(child);};
-      let top=node;while(top.parent)top=top.parent;visit(top);
-      const currentBottom=point(node.parent).y+state.position.y*ps.y-fit.geometry.height*ns.y*number(transform(node,cc)?.anchorPoint?.y,.5);
-      const bottom=Math.max(currentBottom,...icons.filter(r=>!screen||r.bottom<screen.bottom+screen.height*.25).map(r=>r.top+12));
-      if(bottom>currentBottom)fit.position={...state.position,y:state.position.y+(bottom-currentBottom)/ps.y};
       return fit;
     }
     if(role === "lose-tip") return fitBlock(label,state,{width:state.own.width,height:state.own.height,style:styleFor(label,state),role,maxLines:2});
@@ -985,6 +1088,8 @@ export function createController(cc, resources, log = {}) {
         if(desired.bounds.role==='loading-tip')state.tipTarget.node.setPosition(0,desired.geometry.height/2,0);
       }
       const changedLabels = [];
+      for(const [label,state,desired]of plans)if(desired.bounds.role==='intro')placeIntro(label,state,desired,scene);
+      prepareObjectiveIcons(plans);
       for (const [sourceLabel, state, desired] of plans) {
         const label=state.tipTarget??sourceLabel;
 
@@ -1021,6 +1126,7 @@ export function createController(cc, resources, log = {}) {
       for(const [label,,desired]of plans)if(desired.bounds.role==='objective-prose')for(let n=label.node.parent;n&&!/^(LevelObjectiveScreen|PauseScreen)$/.test(n.name);n=n.parent){const layout=component(n,cc,'Layout');if(layout?.enabled)objectiveLayouts.add(layout);}
       const depth=n=>{let d=0;for(;n;n=n.parent)d++;return d;};
       for(const layout of [...objectiveLayouts].sort((a,b)=>depth(b.node)-depth(a.node)))layout.updateLayout?.(true);
+      alignObjectiveIcons(plans);
       for(const [label,state,desired] of plans) if(roleFor(label) === "game-tip") layoutTip(label,state,desired,scene);
       for(const [label,state,desired] of plans)if(['game-tip','loading-tip'].includes(desired.bounds.role))rasterTip(label,state,desired);
       const ownControls = new Set(changedLabels.map(label => states.get(label)?.applied?.bounds.control).filter(control => control?.horizontal));
@@ -1043,6 +1149,8 @@ export function createController(cc, resources, log = {}) {
       for (const [owner, state] of richStates) restoreRich(owner,state);
       richStates.clear();
       states.clear();
+      for(const [node,saved]of objectiveIcons)restoreObjectiveIcon(node,saved);
+      objectiveIcons.clear();
       reflowAlmanac([]);
       releaseControls(null);
       for(const saved of timerNodes.values())restoreTimerNode(saved);
@@ -1194,6 +1302,9 @@ export function createLanguageController(cc, classes, log = {}) {
 let session = null;
 export default {
   startup(ctx) {
+    const journal = createSessionLog(ctx);
+    journal.start();
+    ctx.runtime.onDispose?.(() => journal.dispose(), "gardendless-session-log");
     const cc = ctx.engine.getCc();
     const event = cc?.Director?.EVENT_BEFORE_DRAW ?? "director_before_draw";
     if (!cc?.director?.on || !cc?.director?.getScene) throw new Error("Исправление шрифта: недоступен Cocos director");
@@ -1208,7 +1319,7 @@ export default {
       return nativeEngine?.getModuleExport?.(id, name) ?? globalThis.System?.get?.(id)?.[name] ?? null;
     };
     const language = createLanguageController(cc, { MultiLanguage: classByName("MultiLanguage"), LanguageEnum: exportByName("MultiLanguage", "LanguageEnum"), Setting: exportByName("SettingWindow", "Setting"), KeyListener: classByName("KeyListener") }, ctx.log);
-    const resolveNative=()=>({SettingWindow:classByName("SettingWindow"),Players:nativeEngine?.getAllPlayerProperties?.()??exportByName("PlayerProperties","AllPlayerProperties"),profileKey:exportByName("PlayerProperties","UserDataDocument"),PowerupFingers:exportByName("PowerupFingers","PowerupFingers")??classByName("PowerupFingers"),PlantFoodCount:classByName("PlantFoodCount"),SunCount:classByName("SunCount"),LevelPlay:exportByName("levelController","LevelPlay"),CoinCount:classByName("CoinCount"),CoinCollecterInGame:classByName("CoinCollecterInGame"),sounds:exportByName("SoundRescourses","sounds"),Zen:classByName("zenGardenScene"),Commodity:classByName("StoreCommodity"),LnC:exportByName("LnC","LnC")??classByName("LnC"),UIInGame:exportByName("UI","UIInGame"),ShovelUIController:classByName("ShovelUIController")});
+    const resolveNative=()=>({SettingWindow:classByName("SettingWindow"),Players:nativeEngine?.getAllPlayerProperties?.()??exportByName("PlayerProperties","AllPlayerProperties"),profileKey:exportByName("PlayerProperties","UserDataDocument"),PowerupFingers:exportByName("PowerupFingers","PowerupFingers")??classByName("PowerupFingers"),PlantFoodCount:classByName("PlantFoodCount"),SunCount:classByName("SunCount"),LevelPlay:exportByName("levelController","LevelPlay"),CoinCount:classByName("CoinCount"),CoinCollecterInGame:classByName("CoinCollecterInGame"),sounds:exportByName("SoundRescourses","sounds"),Zen:classByName("zenGardenScene"),Commodity:classByName("StoreCommodity"),CostumeSeller:classByName("StoreCostumeSeller"),LnC:exportByName("LnC","LnC")??classByName("LnC"),UIInGame:exportByName("UI","UIInGame"),ShovelUIController:classByName("ShovelUIController")});
     const native={...resolveNative(),resolve:()=>({...resolveNative(),Plant:classByName("Plant"),ImitaterPlant:classByName("ImitaterPlant"),MultiLanguage:classByName("MultiLanguage"),LanguageEnum:exportByName("MultiLanguage","LanguageEnum")})};
     const paid=createPaidController(cc,native,readPowerPreferences(),ctx.log),ui=createUiController(cc,native,ctx.log);
     native.getGamingSpeed=()=>exportByName("UI","gamingSpeed");
@@ -1259,12 +1370,12 @@ export default {
             try { helper.scan(); }
             catch (error) {
 
-              if (!reported.has(name)) { reported.add(name); ctx.log.warn(`Исправление ${name}: ${String(error?.message ?? error)}`); }
+              if (!reported.has(name)) { reported.add(name); ctx.log.warn(`Исправление ${name}: ${String(error?.stack ?? error)}`); }
             }
           }
         };
         cc.director.on(event, listener);
-        session = { controller, resources, cleanup, language, paid, ui, planning, speed, speedView, settingsView, preview, autoCollect, bindEngine: engine => { nativeEngine = engine; } };
+        session = { controller, resources, cleanup, language, paid, ui, planning, speed, speedView, settingsView, preview, autoCollect, journal, bindEngine: engine => { nativeEngine = engine; } };
         ctx.log.info(`Русский шрифт ${VERSION}: пять исходных шрифтов; размер ${resources.percent}%; исправление до отрисовки кадра.`);
       },
       dispose: cleanup
@@ -1315,6 +1426,11 @@ export default {
         {type:"toggle",key:"planning-boost-fix",label:"Убирать копии от начального буста до старта раунда",description:"Во время подготовки буст из сада или за алмазы расходуется по игровой логике, но не создаёт копии. После запуска раунда копии и удобрение листиком действуют как обычно.",getValue:()=>current.planning.enabled,setValue:v=>current.planning.setEnabled(v)},
         {type:"toggle",key:"custom-game-speed",label:"Изменить стандартный множитель ускорения",description:"Заменяет ускорение штатной кнопки выбранным множителем. Пока ускорение выключено, скорость остаётся обычной.",getValue:()=>current.speed.enabled,setValue:v=>current.speed.setEnabled(v)},
         {type:"number",key:"game-speed-multiplier",label:"Множитель ускорения, ×",description:"От 1× до 10× с шагом 0.1. Можно вводить точку или запятую и подтверждать Enter. При включённом ускорении новое значение применяется сразу, при обычной скорости — после нажатия кнопки ускорения. Пауза и автоматическое отключение сохраняются.",visible:()=>current.speed.enabled,min:1,max:10,step:0.1,getValue:()=>current.speed.multiplier,setValue:v=>current.speed.setMultiplier(v)}
+      ]},{title:"Журнал и диагностика",items:[
+        {type:"action",key:"save-session-log",label:"Сохранить копию журнала TXT",description:"Сообщения игры, GP Next и ошибки автоматически дописываются в gp-next/logs/Gardendless-debug.txt. Копию можно отправить для поиска багов.",onClick:async()=>{
+          try {await current.journal.download();ctx.ui.toast("Копия журнала сохранена.", "success");}
+          catch (error) {ctx.log.error(`Не удалось сохранить копию журнала: ${String(error?.stack ?? error)}`);ctx.ui.toast("Не удалось сохранить копию. Журнал находится в папке gp-next/logs рядом с данными GP Next.", "error");}
+        }}
       ]}]
     }));
     current.preview.start();current.speedView.start();

@@ -6,7 +6,7 @@ function fixture() {
   const values = new Map(), warnings = [], storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
   class Drop {
     constructor(type = "coin") { this.DroppingType = type; this.node = { isValid: true, activeInHierarchy: true }; this.ui = { isValid: true }; this.collected = false; this.calls = 0; this.updates = 0; this.allowed = true; }
-    characterUpdate() { this.updates++; return "native"; }
+    characterUpdate() { this.updates++; if ((this.nativeAutoCollect && level.AutoCollectList.includes(this.DroppingType)) || this.manualPickup) this.collect(); return "native"; }
     collectable() { return !this.collected && this.allowed; }
     collect() { if (this.collectable()) { this.collected = true; this.calls++; } }
   }
@@ -30,14 +30,29 @@ test("all eight toggle combinations separate sun and plant food from every other
   const f = fixture();
   for (let mask = 0; mask < 8; mask++) {
     ["other", "sun", "plantfood"].forEach((key, index) => f.controller.setEnabled(key, !!(mask & (1 << index))));
-    for (const type of ["coin", "gem", "sprout", "ticket", "sun", "plantfood", "", "future-reward"]) {
-      const drop = new f.Drop(type), expected = type === "sun" ? !!(mask & 2) : type === "plantfood" ? !!(mask & 4) : !!type && !!(mask & 1);
+    for (const type of ["coin", "gem", "sprout", "ticket", "sun", "plantfood", "plantFood", "PLANTFOOD", "", "future-reward"]) {
+      const drop = new f.Drop(type), expected = type === "sun" ? !!(mask & 2) : type.toLowerCase() === "plantfood" ? !!(mask & 4) : !!type && !!(mask & 1);
       assert.equal(drop.characterUpdate(.016), "native"); assert.equal(drop.calls, Number(expected), `${mask}: ${type}`);
       for (let i = 0; i < 50; i++) drop.characterUpdate(.016);
       assert.equal(drop.calls, Number(expected), "no duplicate native collection");
     }
   }
   assert.deepEqual(f.level.AutoCollectList, ["gem"]); f.controller.dispose();
+});
+
+test("native automatic Plant Food cannot bypass its checkbox; manual pickup and level rules survive", () => {
+  const f = fixture(), list = f.level.AutoCollectList;
+  list.splice(0, list.length, "coin", "plantfood", "gem", "plantfood");
+  f.controller.setEnabled("other", true);
+  const drop = new f.Drop("plantfood"); drop.nativeAutoCollect = true;
+  drop.characterUpdate(.016); assert.equal(drop.calls, 0);
+  assert.equal(f.level.AutoCollectList, list); assert.deepEqual(list, ["coin", "plantfood", "gem", "plantfood"]);
+  drop.manualPickup = true; drop.characterUpdate(.016); assert.equal(drop.calls, 1);
+  drop.manualPickup = false; drop.collected = false;
+  f.controller.setEnabled("plantfood", true); drop.characterUpdate(.016); assert.equal(drop.calls, 2);
+  f.controller.setActive(false); drop.collected = false; drop.characterUpdate(.016); assert.equal(drop.calls, 2);
+  drop.manualPickup = true; drop.characterUpdate(.016); assert.equal(drop.calls, 3);
+  f.controller.dispose(); drop.collected = false; drop.manualPickup = false; drop.characterUpdate(.016); assert.equal(drop.calls, 4);
 });
 
 test("live toggles immediately govern both existing drops and reused pooled drops", () => {

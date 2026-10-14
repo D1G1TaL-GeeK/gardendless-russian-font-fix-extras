@@ -1,0 +1,18 @@
+{
+  "uuid": "local.gardendless.vase-chaos-rules",
+  "name": "Vase Chaos Rules / Правила вазобоя",
+  "version": "1.2.0",
+  "packFormatVersion": 1,
+  "apiVersion": 2,
+  "gpNextVersion": ">=1.5.5 <2.0.0",
+  "requiredGpNextFeatures": [
+    "experimental.jsModding"
+  ],
+  "author": "Glass Garden — local custom campaign",
+  "description": "Native Vasebreaker fixes and local levels with clear objectives. Endless rounds clear old plants, vases and cards before placing new vases, and reserve two full left planting columns from the first round onward.",
+  "js": {
+    "entry": "scripts/main.mjs",
+    "startup": true,
+    "reloadable": false
+  }
+}

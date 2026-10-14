@@ -1,0 +1,287 @@
+{
+  "#comment": "Glass Garden Vasebreaker 04 - Far Future",
+  "Information": {
+    "uuid": "41e3beb2-1161-57d0-9128-bd113960cbe3",
+    "name": {
+      "ru": "Вазобой 4: Будущее",
+      "en": "Vasebreaker 4: Far Future"
+    },
+    "Author": "Glass Garden / Осколки сада",
+    "Introduction": {
+      "ru": "Разбейте все вазы. Победите всех зомби.",
+      "en": "Break all the vases. Defeat all the zombies."
+    },
+    "GameVersion": "0.15.0",
+    "Version": "1.1",
+    "CreatedAt": "2026-10-11",
+    "UpdatedAt": "2026-10-12",
+    "Difficulty": "Hard",
+    "Category": "Vasebreaker",
+    "RequiredLocalMod": "local.gardendless.vase-chaos-rules",
+    "RequiredLocalModVersion": ">=1.2.0"
+  },
+  "objects": [
+    {
+      "objclass": "LevelDefinition",
+      "objdata": {
+        "Name": "Вазобой 4: Будущее",
+        "Description": "Разбейте все вазы. Победите всех зомби.",
+        "LevelNumber": 4,
+        "StageModule": "RTID(FutureStage@LevelModules)",
+        "Loot": "RTID(DefaultLoot@LevelModules)",
+        "Modules": [
+          "RTID(VaseChaos04Intro@CurrentLevel)",
+          "RTID(ZombiesDeadWinCon@LevelModules)",
+          "RTID(DefaultZombieWinCondition@LevelModules)",
+          "RTID(VaseChaos04Bank@CurrentLevel)",
+          "RTID(VaseChaos04NoWaves@CurrentLevel)",
+          "RTID(VaseChaos04Goals@CurrentLevel)",
+          "RTID(VaseChaos04Vases@CurrentLevel)"
+        ],
+        "IsVasebreaker": true,
+        "StartingSun": 0,
+        "MusicType": "MiniGame_B",
+        "ForceToWorldMap": false,
+        "RepeatPlayForceToWorldMap": false,
+        "VaseChaosRules": {
+          "Ruleset": "glass-garden-chaos-1",
+          "SunVasesMin": 3,
+          "SunVasesMax": 4,
+          "ExtraZombie": "future",
+          "AutoOpenFirst": 10,
+          "AutoOpenEvery": 10,
+          "AutoOpenCount": 1,
+          "VasePlantPool": [
+            "threepeater",
+            "bloomerang",
+            "bonkchoy",
+            "cabbagepult",
+            "repeater",
+            "wallnut",
+            "iceburg",
+            "spikeweed",
+            "potatomine",
+            "splitpea",
+            "torchwood",
+            "starfruit",
+            "peapod",
+            "snowpea",
+            "cactus",
+            "primalpeashooter",
+            "tallnut",
+            "chardguard",
+            "kernelpult",
+            "laser_bean",
+            "lightningreed",
+            "redstinger",
+            "citron",
+            "electricpeashooter",
+            "snappea",
+            "coconutcannon",
+            "sapfling",
+            "peanut",
+            "endurian",
+            "fumeshroom",
+            "scaredyshroom",
+            "magnetshroom",
+            "hypnoshroom",
+            "sporeshroom",
+            "gloomshroom",
+            "pumpkin",
+            "garlic",
+            "puffshroom",
+            "poisonpeashooter",
+            "shadowshroom",
+            "chomper",
+            "firepeashooter",
+            "pepperpult",
+            "coldsnapdragon",
+            "akee",
+            "snapdragon",
+            "primalwallnut",
+            "spikerock",
+            "hurrikale",
+            "banana",
+            "guacodile",
+            "stunion",
+            "primalpotatomine",
+            "phatbeet",
+            "bowlingbulb",
+            "celerystalker",
+            "wasabiwhip",
+            "homingthistle",
+            "mirrornut",
+            "dandelion",
+            "applemortar",
+            "loquat",
+            "wintermelon",
+            "grapeshot",
+            "dusklobber",
+            "explodeonut",
+            "plantern"
+          ],
+          "VaseZombiePool": [
+            "future",
+            "future_armor1",
+            "future_armor2",
+            "future_jetpack",
+            "mech_cone",
+            "future_protector",
+            "disco_mech"
+          ]
+        }
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos04Intro"
+      ],
+      "objclass": "LevelIntroProperties",
+      "objdata": {
+        "PanStartOffset": 0,
+        "PanStreetOffset": 0,
+        "PanEndOffset": 0,
+        "PanRightDuration": 0,
+        "PanLeftDuration": 0,
+        "PanMoveRightTime": 0,
+        "PanMoveLeftTime": 0,
+        "AdditionalStartingSun": 0,
+        "SkipShowingStreet": true,
+        "ZombiePreviewOff": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos04Bank"
+      ],
+      "objclass": "SeedBankProperties",
+      "objdata": {
+        "SelectionMethod": "preset",
+        "PresetPlantList": [
+          {
+            "PlantType": "cherry_bomb",
+            "Level": -1,
+            "ForceBoosted": false
+          },
+          {
+            "PlantType": "empea",
+            "Level": -1,
+            "ForceBoosted": false
+          }
+        ],
+        "SuppressObjectiveTip": true
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos04NoWaves"
+      ],
+      "objclass": "WaveManagerProperties",
+      "objdata": {
+        "WaveCount": 0,
+        "FlagWaveInterval": 1,
+        "SuppressFlagZombie": true,
+        "Waves": []
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos04Goals"
+      ],
+      "objclass": "StarChallengeBeatTheLevelProps",
+      "objdata": {
+        "Descriptions": [
+          "Разбейте все вазы.",
+          "Победите всех зомби.",
+          "Через 10 секунд бездействия случайная ваза разобьётся."
+        ]
+      }
+    },
+    {
+      "aliases": [
+        "VaseChaos04Vases"
+      ],
+      "objclass": "VaseBreakerPresetProperties",
+      "objdata": {
+        "MinColumnIndex": 3,
+        "MaxColumnIndex": 8,
+        "NumColoredPlantVases": 3,
+        "NumColoredZombieVases": 0,
+        "ZombieVasesZombieType": "future_gargantuar",
+        "SunVasesSunValue": 50,
+        "PlantfoodVasesPlantfoodCount": 1,
+        "Vases": [
+          {
+            "PlantTypeName": "laser_bean",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "lightningreed",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "redstinger",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "citron",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "electricpeashooter",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "snappea",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "coconutcannon",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "sapfling",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "peanut",
+            "Count": 1
+          },
+          {
+            "PlantTypeName": "endurian",
+            "Count": 1
+          },
+          {
+            "ZombieTypeName": "future",
+            "Count": 4
+          },
+          {
+            "ZombieTypeName": "future_armor1",
+            "Count": 4
+          },
+          {
+            "ZombieTypeName": "future_jetpack",
+            "Count": 3
+          },
+          {
+            "ZombieTypeName": "mech_cone",
+            "Count": 2
+          },
+          {
+            "ZombieTypeName": "future_protector",
+            "Count": 2
+          },
+          {
+            "CollectableTypeName": "sun",
+            "Count": 4
+          },
+          {
+            "CollectableTypeName": "plantfood",
+            "Count": 1
+          }
+        ]
+      }
+    }
+  ],
+  "version": 1
+}

@@ -9,7 +9,7 @@
     "experimental.jsModding"
   ],
   "author": "AI-generated project",
-  "description": "Russian font and UI fixes with five font replacement slots, live previews, startup language selection, optional coin-priced power-ups, pickup collection, custom fast-forward and a planning-mode fix. Project publisher's declaration: mod code and documentation are 100% generated using AI OpenAI GPT 6.1. Third-party fonts retain their own licenses. No maintenance or support commitment.",
+  "description": "Russian font and UI fixes with five font replacement slots, live previews, startup language selection, optional coin-priced power-ups, pickup collection, custom fast-forward a planning-mode fix, and automatic game/GP Next diagnostic logging to one TXT file. Project publisher's declaration: mod code and documentation are 100% generated using AI OpenAI GPT 6.1. Third-party fonts retain their own licenses. No maintenance or support commitment.",
   "js": {
     "entry": "scripts/main.mjs",
     "startup": true,

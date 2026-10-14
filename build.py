@@ -7,8 +7,8 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parent
-MODULES = ("font-slots.mjs", "paid-powerups.mjs", "layout-ui.mjs", "font-preview.mjs", "planning-boost.mjs", "game-speed.mjs", "settings-view.mjs", "tip-party.mjs", "auto-collect.mjs", "text-fit.mjs")
-DOCS = ("README.md", "README.ru.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "PUBLISHING.md", "CHANGELOG.md", "RELEASE-1.0.3.md")
+MODULES = ("font-slots.mjs", "paid-powerups.mjs", "layout-ui.mjs", "font-preview.mjs", "planning-boost.mjs", "game-speed.mjs", "settings-view.mjs", "tip-party.mjs", "auto-collect.mjs", "text-fit.mjs", "session-log.mjs")
+DOCS = ("README.md", "README.ru.md", "FEATURES.md", "FEATURES.ru.md", "VASEBREAKER.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "CHANGELOG.md", "RELEASE-1.0.3.md")
 
 
 def bundle():
@@ -19,7 +19,13 @@ def bundle():
     main = re.sub(r'^import .* from "\./[^"\n]+";[ \t]*\n', "", main, flags=re.MULTILINE)
     if re.search(r"^\s*import\s+(?!\()", main, re.MULTILINE):
         raise ValueError("The GP-Next entry must not contain static imports")
-    text = "\n\n".join((ROOT / "src" / name).read_text(encoding="utf-8").strip() for name in MODULES)
+    modules = []
+    for name in MODULES:
+        source = (ROOT / "src" / name).read_text(encoding="utf-8").strip()
+        if name == "session-log.mjs":
+            source = "// BEGIN_SESSION_LOG\n" + source + "\n// END_SESSION_LOG"
+        modules.append(source)
+    text = "\n\n".join(modules)
     return (text + "\n\n" + main.strip() + "\n").encode("utf-8")
 
 
@@ -77,6 +83,9 @@ def main():
     source_files["SCREENSHOTS.md"] = (ROOT / "SCREENSHOTS.md").read_bytes()
     for path in sorted((ROOT / "docs").rglob("*")):
         if path.is_file() and path.suffix in (".png", ".md", ".html", ".css", ".js", ".xml", ""):
+            source_files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
+    for path in sorted((ROOT / "vasebreaker").rglob("*")):
+        if path.is_file() and "__pycache__" not in path.parts:
             source_files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
     version = json.loads((ROOT / "pack.json").read_text(encoding="utf-8"))["version"]
     entries = (

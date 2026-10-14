@@ -18,12 +18,17 @@ export function createAutoCollectController(cc, native, log = {}, storage) {
     try { (storage ?? globalThis.localStorage)?.setItem(AUTO_COLLECT_KEY, JSON.stringify({ enabled, ...preferences })); }
     catch (_) { log.warn?.("Автоподбор изменён на текущий запуск; сохранить настройку не удалось."); }
   }
+  function pickupType(drop, garden) {
+    const type = typeof drop.DroppingType === "string" ? drop.DroppingType.trim().toLowerCase() : "";
+    if (type === "plantfood") return "plantfood";
+    return garden ? "other" : type === "sun" ? "sun" : type ? "other" : null;
+  }
   function collect(drop, dt, garden) {
     if (disposed || !enabled || !(dt > 0) || drop.collected || drop.disabled || drop.fadingAway || drop.node?.isValid === false ||
       drop.node?.activeInHierarchy === false || drop.enabled === false || drop.mouseListen === false) return;
     const level = native.LevelPlay?.component, ui = native.UIInGame?.component;
     if (!garden && (!level || level.gameOver || level.gameWon || level.gameLost || ui?.paused || ui?.exitNextTick || ui?.restartNextTick || ui?.sceneEnabled === false)) return;
-    const type = garden ? "other" : drop.DroppingType === "sun" ? "sun" : drop.DroppingType === "plantfood" ? "plantfood" : drop.DroppingType ? "other" : null;
+    const type = pickupType(drop, garden);
     if (!type || !preferences[type] || typeof drop.collect !== "function" || typeof drop.collectable !== "function" || !drop.collectable()) return;
     if (!drop.ui || drop.ui.isValid === false) return;
     if (type === "plantfood") {
@@ -37,7 +42,23 @@ export function createAutoCollectController(cc, native, log = {}, storage) {
     bound.add(proto);
     const original = proto[key], own = Object.getOwnPropertyDescriptor(proto, key);
     const replacement = function(dt, ...args) {
-      const result = original.call(this, dt, ...args);
+      // Native level rules can collect before our post-update preference check.
+      // Mask only their automatic Plant Food entry during this synchronous
+      // update. Mouse pickup still runs normally, and the list is restored.
+      const list = !garden && pickupType(this, false) === "plantfood" &&
+        (!enabled || !preferences.plantfood) ? native.LevelPlay?.component?.AutoCollectList : null;
+      const removed = [];
+      if (Array.isArray(list)) {
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (typeof list[i] === "string" && list[i].trim().toLowerCase() === "plantfood") {
+            removed.push([i, list[i]]);
+            list.splice(i, 1);
+          }
+        }
+      }
+      let result;
+      try { result = original.call(this, dt, ...args); }
+      finally { for (const [i, value] of removed.reverse()) list.splice(i, 0, value); }
       try { collect(this, dt, garden); }
       catch (error) { if (!warned) { warned = true; log.warn?.(`Автоподбор: ${String(error?.message ?? error)}`); } }
       return result;

@@ -176,6 +176,16 @@ export function createUiController(cc,native={},log={}) {
       if(!node||!nodes.includes(node))continue;
       insetWidget(node,['right','top']);
     }
+    const preview=native.LevelPlay?.component?.viewButton?.node??nodes.find(node=>node.name==='lawnViewer'&&/^(Canvas|UIInGameUpper)$/.test(node.parent?.name??''));
+    if(preview&&nodes.includes(preview)&&preview!==pause&&preview.activeInHierarchy!==false) {
+      // Its animated artwork and mouse listener move together with the native node.
+      const widget=comp(preview,cc,'Widget');
+      if(widget?.enabled)insetWidget(preview,['right','top'],1,8);
+      else {
+        const state=own(preview),parentScale=preview.parent?.worldScale??{x:1,y:1};
+        preview.setPosition(state.position.x-8/Math.abs(parentScale.x),state.position.y-8/Math.abs(parentScale.y),state.position.z);
+      }
+    }
     const shovelControl=native.ShovelUIController?.shovelUI;
     const shovel=shovelControl?.node??nodes.find(node=>node.name==='Shovel'&&node.parent?.name==='UIInGame');
     if(shovel&&nodes.includes(shovel)&&shovel.activeInHierarchy!==false&&shovelControl?.gameStarted!==false&&Math.abs(shovel.worldPosition?.x??0)<2000) {
@@ -248,7 +258,9 @@ export function createUiController(cc,native={},log={}) {
         else count.setPosition(count.position.x,s.position.y+12/Math.abs(count.parent.worldScale.y),count.position.z);
       }
       if(z?.currentZen?.node)overview(z);
-      for(const c of native.Commodity?scene?.getComponentsInChildren?.(native.Commodity)??[]:[]) {
+      const storeCards=new Set();
+      for(const type of [native.Commodity,native.CostumeSeller])if(type)for(const card of scene?.getComponentsInChildren?.(type)??[])storeCards.add(card);
+      for(const c of storeCards) {
         const label=c.buyButtonLabel,black=c.buyButtonSprite?.node;
         if(!label?.node||!black)continue;
         const layout=comp(black,cc,"Layout"),card=rect(c.node),buttonUi=comp(black,cc,"UITransform");
